@@ -11,7 +11,7 @@ import SwiftUI
 struct RobloxStudioMobileApp: App {
     var body: some Scene {
         WindowGroup {
-            EditingView()
+            ContentView()
         }
     }
 }
