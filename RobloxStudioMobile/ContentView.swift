@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     var body: some View {
@@ -24,7 +25,7 @@ struct ContentView: View {
                     })
                 Section(header: Text("Dev Only")){
                     NavigationLink(
-                        destination: EditingView()
+                        destination: EditingView(file: "")
                             .navigationBarHidden(true),
                         label: {
                             Text("Dev")
@@ -51,8 +52,8 @@ struct ExploreView: View{
 }
 
 struct FileView: View{
-    @State var showDocumentViewer = false
-    @State var fileContent = ""
+    @State var isImporting = false
+    @State var file: InputDoument = InputDoument(input: "")
     @State var isPresented = false
     
     var body: some View{
@@ -68,7 +69,7 @@ struct FileView: View{
                             }
                         )
                         Button(
-                            action: {showDocumentViewer = true},
+                            action: {isImporting = true},
                             label: {Label("Import from Files", systemImage: "square.and.arrow.down")
                             }
                         )
@@ -78,13 +79,55 @@ struct FileView: View{
                     }
                 }
             }
-            .fullScreenCover(isPresented: $isPresented, content: {EditingView()})
-        Group(){}.sheet(isPresented: self.$showDocumentViewer, content: {
-            DocumentPicker(fileContent: $fileContent)
-        })
+            .fullScreenCover(isPresented: $isPresented, content: {EditingView(file: "")})
+            .fileImporter(
+                isPresented: $isImporting,
+                allowedContentTypes: [.rbxlx],
+                allowsMultipleSelection: false
+            ) { result in
+                do {
+                    guard let selectedFile: URL = try result.get().first else { return }
+                    if selectedFile.startAccessingSecurityScopedResource() {
+                        guard let input = String(data: try Data(contentsOf: selectedFile), encoding: .utf8) else { return }
+                        defer { selectedFile.stopAccessingSecurityScopedResource() }
+                        file.input = input
+                        isPresented.toggle()
+                    } else {
+                        // Handle denied access
+                    }
+                } catch {
+                    // Handle failure.
+                    print("Unable to read file contents")
+                    print(error.localizedDescription)
+                }
+            }
     }
 }
 
+struct InputDoument: FileDocument {
+    
+    static var readableContentTypes: [UTType] { [.plainText] }
+    
+    var input: String
+    
+    init(input: String) {
+        self.input = input
+    }
+    
+    init(configuration: FileDocumentReadConfiguration) throws {
+        guard let data = configuration.file.regularFileContents,
+              let string = String(data: data, encoding: .utf8)
+        else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        input = string
+    }
+    
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        return FileWrapper(regularFileWithContents: input.data(using: .utf8)!)
+    }
+    
+}
 
 struct SettingView: View{
     var body: some View{
@@ -93,39 +136,11 @@ struct SettingView: View{
     }
 }
 
-struct DocumentPicker: UIViewControllerRepresentable{
-    @Binding var fileContent: String
-    
-    func makeCoordinator() -> DocumentPickerCoordinator {
-        return DocumentPickerCoordinator(fileContent: $fileContent)
-    }
-    func makeUIViewController(context: UIViewControllerRepresentableContext<DocumentPicker>) -> UIDocumentPickerViewController {
-        let controller: UIDocumentPickerViewController
-        
-        controller = UIDocumentPickerViewController(forOpeningContentTypes: [.data], asCopy: true)
-        controller.delegate = context.coordinator
-        return controller
-    }
-    
-    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: UIViewControllerRepresentableContext<DocumentPicker>) {}
-}
-
-class DocumentPickerCoordinator: NSObject, UIDocumentPickerDelegate, UINavigationControllerDelegate{
-    
-    @Binding var fileContent: String
-    
-    init(fileContent: Binding<String>){
-        _fileContent = fileContent
-    }
-    
-    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]){
-        let fileURL = urls[0]
-        do{
-            fileContent = try String(contentsOf: fileURL, encoding: .utf8)
-            print(fileContent)
-        }catch let error{
-            print(error.localizedDescription)
-        }
+extension UTType {
+    // Word documents are not an existing property on UTType
+    static var rbxlx: UTType {
+        // Look up the type from the file extension
+        UTType.types(tag: "rbxlx", tagClass: .filenameExtension, conformingTo: .xml).first!
     }
 }
 

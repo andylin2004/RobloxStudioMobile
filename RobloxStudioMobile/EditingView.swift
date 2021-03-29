@@ -9,6 +9,11 @@ import SwiftUI
 
 struct EditingView: View {
     @Environment(\.presentationMode) var presentationMode
+    let file: String
+    
+    init(file: String){
+        self.file = file
+    }
     
     var body: some View {
         NavigationView{
@@ -24,6 +29,7 @@ struct EditingView: View {
                     Divider()
                     VStack{
                         Text("Properties Placeholder")
+                        Text(file)
                     }.frame(width: geometry.size.width*0.25)
                     
                 }
@@ -62,6 +68,6 @@ struct EditingView: View {
 
 struct EditingView_Previews: PreviewProvider {
     static var previews: some View {
-        EditingView()
+        EditingView(file: "")
     }
 }
