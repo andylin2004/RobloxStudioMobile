@@ -22,12 +22,19 @@ struct ContentView: View {
                     label: {
                         Label("Settings", systemImage: "gear")
                     })
-                NavigationLink(
-                    destination: EditingView()
-                        .navigationBarHidden(true),
-                    label: {
-                        Text("Dev")
-                    })
+                Section(header: Text("Dev Only")){
+                    NavigationLink(
+                        destination: EditingView()
+                            .navigationBarHidden(true),
+                        label: {
+                            Text("Dev")
+                        })
+                    NavigationLink(
+                        destination: UploadTest(),
+                        label: {
+                            Text("Upload")
+                        })
+                }
                 Section(header: Text("Favorites")){
                     
                 }
