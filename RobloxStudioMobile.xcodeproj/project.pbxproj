@@ -14,7 +14,6 @@
 		42E413F92610FA5000E3BB6E /* SideElementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42E413F82610FA5000E3BB6E /* SideElementView.swift */; };
 		42E413FC2610FC6B00E3BB6E /* SideViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42E413FB2610FC6B00E3BB6E /* SideViews.swift */; };
 		42E413FF26112CA300E3BB6E /* EditingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42E413FE26112CA300E3BB6E /* EditingView.swift */; };
-		42E414032611533000E3BB6E /* UploadTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42E414022611533000E3BB6E /* UploadTest.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,7 +26,6 @@
 		42E413F82610FA5000E3BB6E /* SideElementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SideElementView.swift; sourceTree = "<group>"; };
 		42E413FB2610FC6B00E3BB6E /* SideViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SideViews.swift; sourceTree = "<group>"; };
 		42E413FE26112CA300E3BB6E /* EditingView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EditingView.swift; sourceTree = "<group>"; };
-		42E414022611533000E3BB6E /* UploadTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadTest.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -65,7 +63,6 @@
 				42E413FE26112CA300E3BB6E /* EditingView.swift */,
 				42E413F82610FA5000E3BB6E /* SideElementView.swift */,
 				42E413FB2610FC6B00E3BB6E /* SideViews.swift */,
-				42E414022611533000E3BB6E /* UploadTest.swift */,
 				42E413E92610AFE400E3BB6E /* Assets.xcassets */,
 				42E413EE2610AFE400E3BB6E /* Info.plist */,
 				42E413EB2610AFE400E3BB6E /* Preview Content */,
@@ -154,7 +151,6 @@
 				42E413F92610FA5000E3BB6E /* SideElementView.swift in Sources */,
 				42E413FF26112CA300E3BB6E /* EditingView.swift in Sources */,
 				42E413E62610AFE000E3BB6E /* RobloxStudioMobileApp.swift in Sources */,
-				42E414032611533000E3BB6E /* UploadTest.swift in Sources */,
 				42E413FC2610FC6B00E3BB6E /* SideViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
