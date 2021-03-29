@@ -25,7 +25,7 @@ struct ContentView: View {
                     })
                 Section(header: Text("Dev Only")){
                     NavigationLink(
-                        destination: EditingView(file: "")
+                        destination: EditingView(file: InputDocument(input: ""))
                             .navigationBarHidden(true),
                         label: {
                             Text("Dev")
@@ -53,7 +53,7 @@ struct ExploreView: View{
 
 struct FileView: View{
     @State var isImporting = false
-    @State var file: InputDoument = InputDoument(input: "")
+    @State var file: InputDocument = InputDocument(input: "")
     @State var isPresented = false
     
     var body: some View{
@@ -79,7 +79,7 @@ struct FileView: View{
                     }
                 }
             }
-            .fullScreenCover(isPresented: $isPresented, content: {EditingView(file: "")})
+            .fullScreenCover(isPresented: $isPresented, content: {EditingView(file: file)})
             .fileImporter(
                 isPresented: $isImporting,
                 allowedContentTypes: [.rbxlx],
@@ -104,9 +104,9 @@ struct FileView: View{
     }
 }
 
-struct InputDoument: FileDocument {
+struct InputDocument: FileDocument {
     
-    static var readableContentTypes: [UTType] { [.plainText] }
+    static var readableContentTypes: [UTType] { [.xml] }
     
     var input: String
     
