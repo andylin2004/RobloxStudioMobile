@@ -64,7 +64,7 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportsDocumentBrowser</key>
-	<true/>
+	<false/>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
 		<dict>
@@ -79,15 +79,13 @@
 			<key>UTTypeIdentifier</key>
 			<string>com.andylin.robloxstudiomobile.RobloxGameFile</string>
 			<key>UTTypeTagSpecification</key>
-			<dict/>
-		</dict>
-		<dict>
-			<key>CFBundleIdentifier</key>
-			<string></string>
-			<key>UTTypeIconFiles</key>
-			<array/>
-			<key>UTTypeTagSpecification</key>
-			<dict/>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>rbxlx</string>
+					<string>RBXLX</string>
+				</array>
+			</dict>
 		</dict>
 	</array>
 </dict>
