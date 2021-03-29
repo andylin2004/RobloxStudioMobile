@@ -10,9 +10,11 @@ import SwiftUI
 struct EditingView: View {
     @Environment(\.presentationMode) var presentationMode
     let file: InputDocument
+    let fileName: String
     
-    init(file: InputDocument){
+    init(file: InputDocument, fileName: String){
         self.file = file
+        self.fileName = fileName
     }
     
     var body: some View {
@@ -34,7 +36,7 @@ struct EditingView: View {
                     
                 }
                 
-            }.navigationBarTitle("meme", displayMode: .inline)
+            }.navigationBarTitle(fileName, displayMode: .inline)
             .toolbar{
                 ToolbarItemGroup(placement: .navigationBarLeading){
                     Button(action:{presentationMode.wrappedValue.dismiss()}, label:{
@@ -68,6 +70,6 @@ struct EditingView: View {
 
 struct EditingView_Previews: PreviewProvider {
     static var previews: some View {
-        EditingView(file: InputDocument(input: ""))
+        EditingView(file: InputDocument(input: ""), fileName: "")
     }
 }

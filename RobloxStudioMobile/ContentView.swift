@@ -25,7 +25,7 @@ struct ContentView: View {
                     })
                 Section(header: Text("Dev Only")){
                     NavigationLink(
-                        destination: EditingView(file: InputDocument(input: ""))
+                        destination: EditingView(file: InputDocument(input: ""), fileName: "")
                             .navigationBarHidden(true),
                         label: {
                             Text("Dev")
@@ -54,7 +54,9 @@ struct ExploreView: View{
 struct FileView: View{
     @State var isImporting = false
     @State var file: InputDocument = InputDocument(input: "")
-    @State var isPresented = false
+    @State var fileName = ""
+    @State var editorShown = false
+    @State var alertShown = false
     
     var body: some View{
         Text("Files placeholder")
@@ -63,7 +65,7 @@ struct FileView: View{
                 ToolbarItem(placement: .navigationBarTrailing){
                     Menu{
                         Button(
-                            action: {isPresented.toggle()},
+                            action: {editorShown.toggle()},
                             label: {
                                 Label("Add New", systemImage: "doc.badge.plus")
                             }
@@ -79,7 +81,7 @@ struct FileView: View{
                     }
                 }
             }
-            .fullScreenCover(isPresented: $isPresented, content: {EditingView(file: file)})
+            .fullScreenCover(isPresented: $editorShown, content: {EditingView(file: file, fileName: fileName)})
             .fileImporter(
                 isPresented: $isImporting,
                 allowedContentTypes: [.rbxlx],
@@ -91,7 +93,8 @@ struct FileView: View{
                         guard let input = String(data: try Data(contentsOf: selectedFile), encoding: .utf8) else { return }
                         defer { selectedFile.stopAccessingSecurityScopedResource() }
                         file.input = input
-                        isPresented.toggle()
+                        fileName = (selectedFile.description as NSString).lastPathComponent.removingPercentEncoding!
+                        editorShown.toggle()
                     } else {
                         // Handle denied access
                     }
