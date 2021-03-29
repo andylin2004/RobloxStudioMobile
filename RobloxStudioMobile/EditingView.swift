@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct EditingView: View {
-
+    @Environment(\.presentationMode) var presentationMode
+    
     var body: some View {
         NavigationView{
             GeometryReader{ geometry in
@@ -30,7 +31,7 @@ struct EditingView: View {
             }.navigationBarTitle("meme", displayMode: .inline)
             .toolbar{
                 ToolbarItemGroup(placement: .navigationBarLeading){
-                    Button(action:{}, label:{
+                    Button(action:{presentationMode.wrappedValue.dismiss()}, label:{
                         Text("Done")
                     }).buttonStyle(PlainButtonStyle())
                     Button(action: {}, label: {

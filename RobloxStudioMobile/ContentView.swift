@@ -53,6 +53,8 @@ struct ExploreView: View{
 struct FileView: View{
     @State var showDocumentViewer = false
     @State var fileContent = ""
+    @State var isPresented = false
+    
     var body: some View{
         Text("Files placeholder")
             .navigationTitle("Files")
@@ -60,7 +62,7 @@ struct FileView: View{
                 ToolbarItem(placement: .navigationBarTrailing){
                     Menu{
                         Button(
-                            action: {EditingView()},
+                            action: {isPresented.toggle()},
                             label: {
                                 Label("Add New", systemImage: "doc.badge.plus")
                             }
@@ -76,9 +78,10 @@ struct FileView: View{
                     }
                 }
             }
-            .sheet(isPresented: self.$showDocumentViewer, content: {
-                DocumentPicker(fileContent: $fileContent)
-            })
+            .fullScreenCover(isPresented: $isPresented, content: {EditingView()})
+        Group(){}.sheet(isPresented: self.$showDocumentViewer, content: {
+            DocumentPicker(fileContent: $fileContent)
+        })
     }
 }
 
