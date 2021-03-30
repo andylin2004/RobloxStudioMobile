@@ -9,12 +9,14 @@ import SwiftUI
 
 struct EditingView: View {
     @Environment(\.presentationMode) var presentationMode
-    let file: InputDocument
+    let file: String
     let fileName: String
     
-    init(file: InputDocument, fileName: String){
+    init(file: String, fileName: String){
         self.file = file
         self.fileName = fileName
+        
+        parseToDict(data: file)
     }
     
     var body: some View {
@@ -31,7 +33,7 @@ struct EditingView: View {
                     Divider()
                     VStack{
                         Text("Properties Placeholder")
-                        Text(file.input)
+                        Text(file)
                     }.frame(width: geometry.size.width*0.25)
                     
                 }
@@ -70,6 +72,6 @@ struct EditingView: View {
 
 struct EditingView_Previews: PreviewProvider {
     static var previews: some View {
-        EditingView(file: InputDocument(input: ""), fileName: "")
+        EditingView(file: "", fileName: "")
     }
 }

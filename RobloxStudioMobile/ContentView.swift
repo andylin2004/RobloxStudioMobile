@@ -24,7 +24,7 @@ struct ContentView: View {
                     })
                 Section(header: Text("Dev Only")){
                     NavigationLink(
-                        destination: EditingView(file: InputDocument(input: ""), fileName: "")
+                        destination: EditingView(file: "", fileName: "")
                             .navigationBarHidden(true),
                         label: {
                             Text("Dev")
@@ -52,7 +52,7 @@ struct ExploreView: View{
 
 struct FileView: View{
     @State var isImporting = false
-    @State var file: InputDocument = InputDocument(input: "")
+    @State var file = ""
     @State var fileName = ""
     @State var editorShown = false
     @State var alertShown = false
@@ -91,7 +91,7 @@ struct FileView: View{
                     if selectedFile.startAccessingSecurityScopedResource() {
                         guard let input = String(data: try Data(contentsOf: selectedFile), encoding: .utf8) else { return }
                         defer { selectedFile.stopAccessingSecurityScopedResource() }
-                        file.input = input
+                        file = input
                         fileName = (selectedFile.description as NSString).lastPathComponent.removingPercentEncoding!
                         editorShown.toggle()
                     } else {
