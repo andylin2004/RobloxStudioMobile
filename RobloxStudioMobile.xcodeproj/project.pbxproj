@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		376FD0835D3B5A165729CAE9 /* Pods_RobloxStudioMobile.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 044D948DDC04B14167E48EAF /* Pods_RobloxStudioMobile.framework */; };
 		42E413E62610AFE000E3BB6E /* RobloxStudioMobileApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42E413E52610AFE000E3BB6E /* RobloxStudioMobileApp.swift */; };
 		42E413E82610AFE000E3BB6E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42E413E72610AFE000E3BB6E /* ContentView.swift */; };
 		42E413EA2610AFE400E3BB6E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 42E413E92610AFE400E3BB6E /* Assets.xcassets */; };
@@ -17,6 +18,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		044D948DDC04B14167E48EAF /* Pods_RobloxStudioMobile.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RobloxStudioMobile.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		42E413E22610AFE000E3BB6E /* RobloxStudioMobile.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RobloxStudioMobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		42E413E52610AFE000E3BB6E /* RobloxStudioMobileApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RobloxStudioMobileApp.swift; sourceTree = "<group>"; };
 		42E413E72610AFE000E3BB6E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -26,6 +28,8 @@
 		42E413F82610FA5000E3BB6E /* SideElementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SideElementView.swift; sourceTree = "<group>"; };
 		42E413FB2610FC6B00E3BB6E /* SideViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SideViews.swift; sourceTree = "<group>"; };
 		42E413FE26112CA300E3BB6E /* EditingView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EditingView.swift; sourceTree = "<group>"; };
+		66124279E899E6ACE0717421 /* Pods-RobloxStudioMobile.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RobloxStudioMobile.debug.xcconfig"; path = "Target Support Files/Pods-RobloxStudioMobile/Pods-RobloxStudioMobile.debug.xcconfig"; sourceTree = "<group>"; };
+		98EF26FB430E67440E07739D /* Pods-RobloxStudioMobile.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RobloxStudioMobile.release.xcconfig"; path = "Target Support Files/Pods-RobloxStudioMobile/Pods-RobloxStudioMobile.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -33,6 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				376FD0835D3B5A165729CAE9 /* Pods_RobloxStudioMobile.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -44,6 +49,8 @@
 			children = (
 				42E413E42610AFE000E3BB6E /* RobloxStudioMobile */,
 				42E413E32610AFE000E3BB6E /* Products */,
+				6E6C34C5DCC2B485374C8298 /* Pods */,
+				C7118FBF9CC270A426594C6E /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -78,6 +85,24 @@
 			path = "Preview Content";
 			sourceTree = "<group>";
 		};
+		6E6C34C5DCC2B485374C8298 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				66124279E899E6ACE0717421 /* Pods-RobloxStudioMobile.debug.xcconfig */,
+				98EF26FB430E67440E07739D /* Pods-RobloxStudioMobile.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
+			sourceTree = "<group>";
+		};
+		C7118FBF9CC270A426594C6E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				044D948DDC04B14167E48EAF /* Pods_RobloxStudioMobile.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -85,9 +110,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 42E413F12610AFE400E3BB6E /* Build configuration list for PBXNativeTarget "RobloxStudioMobile" */;
 			buildPhases = (
+				24EF1ACBE9CA8B6A0D1D67F8 /* [CP] Check Pods Manifest.lock */,
 				42E413DE2610AFE000E3BB6E /* Sources */,
 				42E413DF2610AFE000E3BB6E /* Frameworks */,
 				42E413E02610AFE000E3BB6E /* Resources */,
+				3AAA31445FEAD6C9341E1FEE /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -141,6 +168,48 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		24EF1ACBE9CA8B6A0D1D67F8 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-RobloxStudioMobile-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		3AAA31445FEAD6C9341E1FEE /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-RobloxStudioMobile/Pods-RobloxStudioMobile-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-RobloxStudioMobile/Pods-RobloxStudioMobile-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-RobloxStudioMobile/Pods-RobloxStudioMobile-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		42E413DE2610AFE000E3BB6E /* Sources */ = {
@@ -276,6 +345,7 @@
 		};
 		42E413F22610AFE400E3BB6E /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 66124279E899E6ACE0717421 /* Pods-RobloxStudioMobile.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -298,6 +368,7 @@
 		};
 		42E413F32610AFE400E3BB6E /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 98EF26FB430E67440E07739D /* Pods-RobloxStudioMobile.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
