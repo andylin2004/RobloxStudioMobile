@@ -44,7 +44,7 @@ struct InputDocument: FileDocument {
 }
 
 extension UTType {
-    // Word documents are not an existing property on UTType
+    //rbxlx
     static var rbxlx: UTType {
         // Look up the type from the file extension
         UTType.types(tag: "rbxlx", tagClass: .filenameExtension, conformingTo: .xml).first!
@@ -52,12 +52,6 @@ extension UTType {
 }
 
 func parseToDict(data: String){
-//    let lineByLine = data.split(whereSeparator: \.isNewline)
-//
-//    for line in lineByLine{
-//        print(line.re)
-//    }
-    
     let toParse = data.split(whereSeparator: \.isNewline)
     
     var dataSet: Array<RbxObject> = []
