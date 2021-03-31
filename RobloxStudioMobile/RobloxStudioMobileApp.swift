@@ -61,69 +61,85 @@ func parseToDict(data: String){
     
     let toParse = data.split(whereSeparator: \.isNewline)
     
-    var dataSet: Array<Any> = []
+    var dataSet: Array<RbxObject>
     
-    for lineNum in 0..<toParse.count{
-        let line = toParse[lineNum]
-        if line.contains("http://www.w3.org/2005/05/xmlmime") || line == "</roblox>"{
-            continue
-        }
+    var tempProperties: Dictionary<String, PropertyInfo> = [:]
+    
+    var lineNum = 3
+    while lineNum < toParse.count-3{
+        var line = toParse[lineNum]
         if line.replacingOccurrences(of: "\t", with: "").prefix(2) == "</"{
-            continue
-        }
-        if line.replacingOccurrences(of: "\t", with: "").prefix(1) == "<"{
-            let parseLine = line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]
-            let parseSplit = parseLine.split(separator: " ")
-            if line.index(of: "</") != nil{
-                dataSet.append(NamedArray(name: String(parseLine), array: [line[line.index(after: line.firstIndex(of: ">")!)..<line.index(of: "</")!]]))
-            }else{
-                dataSet.append(NamedArray(name: String(parseLine), array: parseToDict(signatureToStop: String(parseSplit.first!), array: toParse, start: lineNum)))
+            //nothing
+        }else if line.replacingOccurrences(of: "\t", with: "") == "<Properties>"{
+            lineNum += 1
+            while toParse[lineNum].replacingOccurrences(of: "\t", with: "") != "</Properties>"{
+                line = toParse[lineNum]
+//                print(line)
+                
+                if line.contains("<![CDATA["){
+                    lineNum += 1
+                    while !toParse[lineNum].contains("]]>"){
+                        line += toParse[lineNum]
+                        lineNum += 1
+                    }
+                }
+                let parseLine = line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]
+                let parseSplit = parseLine.split(separator: " ")
+                
+                let propertyType = String(parseSplit[0])
+                
+                if multiInObject.contains(propertyType) {
+                    var flag: Dictionary<String, Any> = [:]
+                    
+                    lineNum += 1
+                    while toParse[lineNum].replacingOccurrences(of: "\t", with: "") != "</"+propertyType+">"{
+//                        print(toParse[lineNum])
+                        line = toParse[lineNum]
+                        flag.updateValue(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!], forKey: String(line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]))
+                        lineNum += 1
+                    }
+                    tempProperties.updateValue(PropertyInfo(type: "", value: flag), forKey: propertyType)
+                }else{
+                    let propertyName = String(parseSplit[1])
+                    let propertyValue: String
+                    if line.firstIndex(of: ">")! < line.lastIndex(of: "<")!{
+                        propertyValue = String(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!])
+                    }else{
+                        propertyValue = ""
+                    }
+                    let propertyInfo = PropertyInfo(type: propertyType, value: propertyValue)
+                    
+                    tempProperties.updateValue(propertyInfo, forKey: propertyName)
+                    
+                }
+                lineNum += 1
             }
         }
+        else if line.replacingOccurrences(of: "\t", with: "").prefix(1) == "<"{
+            let parseLine = line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]
+            let parseSplit = parseLine.split(separator: " ")
+        }
+        lineNum += 1
     }
 //    print(dataSet)
 }
 
-func parseToDict(signatureToStop: String, array: Array<Substring>, start: Int) -> Array<Any>{
-    var dataSet: Array<Any> = []
-    
-    var lineNum = start
-    
-    while lineNum < array.count{
-        print(lineNum)
-        let line: String = String(String(array[lineNum]))
-        if array[lineNum] == "</"+signatureToStop+">"{
-            return dataSet, lineNum
-        }
-        if array[lineNum].contains("<ProtectedString name=\"Source\"><![CDATA["){
-            var script = array[lineNum]
-            script.removeFirst(40)
-            while !array[lineNum].contains("]]></ProtectedString>"){
-                script += array[lineNum]
-                lineNum += 1
-            }
-            var add = String(array[lineNum])
-            add.removeLast(21)
-            script += add
-            print(script)
-        }else{
-            let parseLine = line[line.index(after: (line.firstIndex(of: "<")!))..<line.firstIndex(of: ">")!]
-            let parseSplit = parseLine.split(separator: " ")
-            if line.index(of: "</") != nil && line.index(of: "</")! >= line.firstIndex(of: ">")!{
-                dataSet.append(NamedArray(name: String(parseLine), array: [line[line.index(after: line.firstIndex(of: ">")!)..<line.index(of: "</")!]]))
-            }else{
-                dataSet.append(NamedArray(name: String(parseLine), array: parseToDict(signatureToStop: String(parseSplit.first!), array: Array(array[lineNum..<array.count]), start: lineNum)))
-            }
-        }
-        lineNum += 1
-    }
-    return dataSet, lineNum
+//private func parseToDict(data: Array<Substring>, startAtLine: Int) -> (Array<RbxObject>, Int){
+//
+//}
+
+struct RbxObject{
+    let name: String
+    let properties: Dictionary<String, PropertyInfo>
+    let Items: Array<RbxObject>
 }
 
-struct NamedArray{
-    let name: String
-    let array: Array<Any>
+struct PropertyInfo{
+    let type: String
+    let value: Any
 }
+
+let multiInObject = ["CoordinateFrame", "Vector3", "PhysicalProperties", "Color3"]
 
 extension StringProtocol {
     func index<S: StringProtocol>(of string: S, options: String.CompareOptions = []) -> Index? {
