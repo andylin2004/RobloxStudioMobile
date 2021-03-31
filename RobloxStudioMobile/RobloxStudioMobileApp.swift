@@ -51,7 +51,7 @@ extension UTType {
     }
 }
 
-func parseToDict(data: String){
+func parseToDict(data: String) -> Array<RbxObject>{
     let toParse = data.split(whereSeparator: \.isNewline)
     
     var dataSet: Array<RbxObject> = []
@@ -128,7 +128,8 @@ func parseToDict(data: String){
         }
         lineNum += 1
     }
-//    print(dataSet)
+    loading = false
+    return dataSet
 }
 
 private func parseToDict(data: Array<Substring>, startAtLine: Int) -> (resultTable: Array<RbxObject>, resumingAt: Int){

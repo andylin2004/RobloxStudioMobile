@@ -43,7 +43,7 @@ struct ContentView: View {
                     EditButton()
                 }
                 ExploreView()
-            }.saturation(loadingHere ? 0.2 : 1)
+            }.saturation(loadingHere ? 0 : 1)
             ZStack{
                 Rectangle()
                     .opacity(0.3)

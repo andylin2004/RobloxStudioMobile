@@ -11,12 +11,13 @@ struct EditingView: View {
     @Environment(\.presentationMode) var presentationMode
     let file: String
     let fileName: String
+    let parsedArray: Array<RbxObject>
     
     init(file: String, fileName: String){
         self.file = file
         self.fileName = fileName
         
-        parseToDict(data: file)
+        self.parsedArray = parseToDict(data: file)
         
         print("done")
     }
