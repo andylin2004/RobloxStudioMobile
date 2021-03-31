@@ -44,6 +44,7 @@ struct ContentView: View {
                 }
                 ExploreView()
             }.saturation(loadingHere ? 0 : 1)
+            .disabled(loadingHere)
             ZStack{
                 Rectangle()
                     .opacity(0.3)
