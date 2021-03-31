@@ -13,17 +13,12 @@ struct EditingView: View {
     let fileName: String
     
     init(file: String, fileName: String){
-        loading = true
-        
-        print(loading)
-        
         self.file = file
         self.fileName = fileName
         
         parseToDict(data: file)
         
-        loading = false
-        print(loading)
+        print("done")
     }
     
     var body: some View {

@@ -9,6 +9,8 @@ import SwiftUI
 
 var loading = false
 struct ContentView: View {
+    @State var loadingHere = true
+    let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
     var body: some View {
         ZStack{
             NavigationView{
@@ -41,7 +43,7 @@ struct ContentView: View {
                     EditButton()
                 }
                 ExploreView()
-            }.saturation(loading ? 0.2 : 0)
+            }.saturation(loadingHere ? 0.2 : 1)
             ZStack{
                 Rectangle()
                     .opacity(0.3)
@@ -53,8 +55,15 @@ struct ContentView: View {
                     .background(Color.black)
                     .opacity(0.5)
                     .clipShape(RoundedRectangle(cornerRadius: 25.0))
-            }.opacity(loading ? 1 : 0)
-            
+            }.opacity(loadingHere ? 1 : 0)
+            .onReceive(timer, perform: { _ in
+                print(loading)
+                if loading{
+                    loadingHere = true
+                }else{
+                    loadingHere = false
+                }
+            })
         }
     }
 }
@@ -109,6 +118,8 @@ struct FileView: View{
                         defer { selectedFile.stopAccessingSecurityScopedResource() }
                         file = input
                         fileName = (selectedFile.description as NSString).lastPathComponent.removingPercentEncoding!
+                        loading = true
+                        print("now loading")
                         editorShown.toggle()
                     } else {
                         // Handle denied access
