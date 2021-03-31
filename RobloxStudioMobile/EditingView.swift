@@ -13,10 +13,17 @@ struct EditingView: View {
     let fileName: String
     
     init(file: String, fileName: String){
+        loading = true
+        
+        print(loading)
+        
         self.file = file
         self.fileName = fileName
         
         parseToDict(data: file)
+        
+        loading = false
+        print(loading)
     }
     
     var body: some View {
@@ -33,7 +40,6 @@ struct EditingView: View {
                     Divider()
                     VStack{
                         Text("Properties Placeholder")
-                        Text(file)
                     }.frame(width: geometry.size.width*0.25)
                     
                 }

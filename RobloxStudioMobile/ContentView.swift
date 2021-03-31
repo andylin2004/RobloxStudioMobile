@@ -7,38 +7,54 @@
 
 import SwiftUI
 
+var loading = false
 struct ContentView: View {
     var body: some View {
-        NavigationView{
-            List{
-                NavigationLink(destination: ExploreView()){
-                    Label("Explore", systemImage: "house")
-                }
-                NavigationLink(destination: FileView()){
-                    Label("Files", systemImage: "folder")
-                }
-                NavigationLink(
-                    destination: SettingView(),
-                    label: {
-                        Label("Settings", systemImage: "gear")
-                    })
-                Section(header: Text("Dev Only")){
+        ZStack{
+            NavigationView{
+                List{
+                    NavigationLink(destination: ExploreView()){
+                        Label("Explore", systemImage: "house")
+                    }
+                    NavigationLink(destination: FileView()){
+                        Label("Files", systemImage: "folder")
+                    }
                     NavigationLink(
-                        destination: EditingView(file: "", fileName: "")
-                            .navigationBarHidden(true),
+                        destination: SettingView(),
                         label: {
-                            Text("Dev")
+                            Label("Settings", systemImage: "gear")
                         })
+                    Section(header: Text("Dev Only")){
+                        NavigationLink(
+                            destination: EditingView(file: "", fileName: "")
+                                .navigationBarHidden(true),
+                            label: {
+                                Text("Dev")
+                            })
+                    }
+                    Section(header: Text("Favorites")){
+                        
+                    }
+                }.listStyle(SidebarListStyle())
+                .navigationTitle("Home")
+                .toolbar{
+                    EditButton()
                 }
-                Section(header: Text("Favorites")){
-                    
-                }
-            }.listStyle(SidebarListStyle())
-            .navigationTitle("Home")
-            .toolbar{
-                EditButton()
-            }
-            ExploreView()
+                ExploreView()
+            }.saturation(loading ? 0.2 : 0)
+            ZStack{
+                Rectangle()
+                    .opacity(0.3)
+                    .ignoresSafeArea()
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    .scaleEffect(x: 3, y: 3, anchor: /*@START_MENU_TOKEN@*/.center/*@END_MENU_TOKEN@*/)
+                    .frame(width: 100, height: 100, alignment: /*@START_MENU_TOKEN@*/.center/*@END_MENU_TOKEN@*/)
+                    .background(Color.black)
+                    .opacity(0.5)
+                    .clipShape(RoundedRectangle(cornerRadius: 25.0))
+            }.opacity(loading ? 1 : 0)
+            
         }
     }
 }

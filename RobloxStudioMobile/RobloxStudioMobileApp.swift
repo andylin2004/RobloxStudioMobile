@@ -122,13 +122,13 @@ func parseToDict(data: String){
             let parseLine = line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]
             let parseSplit = parseLine.split(separator: " ")
             
-            print(line)
+//            print(line)
             tempName = String(parseSplit[1])
             
         }
         lineNum += 1
     }
-    print(dataSet)
+//    print(dataSet)
 }
 
 private func parseToDict(data: Array<Substring>, startAtLine: Int) -> (resultTable: Array<RbxObject>, resumingAt: Int){
@@ -142,8 +142,8 @@ private func parseToDict(data: Array<Substring>, startAtLine: Int) -> (resultTab
     
     while lineNum < data.count - 4 && data[lineNum].replacingOccurrences(of: "\t", with: "") != "</Item>"{
         var line = data[lineNum]
-        print(line)
-        print(lineNum)
+//        print(line)
+//        print(lineNum)
         if line.replacingOccurrences(of: "\t", with: "") == "<Properties>"{
             lineNum += 1
             while data[lineNum].replacingOccurrences(of: "\t", with: "") != "</Properties>"{
@@ -248,5 +248,15 @@ extension StringProtocol {
                     index(range.lowerBound, offsetBy: 1, limitedBy: endIndex) ?? endIndex
         }
         return result
+    }
+}
+
+extension View {
+    @ViewBuilder func isHidden(_ isHidden: Bool) -> some View {
+        if isHidden {
+            self.hidden()
+        } else {
+            self
+        }
     }
 }
