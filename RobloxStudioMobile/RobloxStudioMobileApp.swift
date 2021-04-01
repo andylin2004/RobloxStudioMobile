@@ -128,7 +128,7 @@ func parseToDict(data: String) -> Array<RbxObject>{
         }
         lineNum += 1
     }
-//    print(dataSet)
+    return dataSet
 }
 
 private func parseToDict(data: Array<Substring>, startAtLine: Int) -> (resultTable: Array<RbxObject>, resumingAt: Int){
