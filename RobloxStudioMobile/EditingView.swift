@@ -19,6 +19,7 @@ struct EditingView: View {
         
         self.parsedArray = parseToDict(data: file)
         
+        loading = false
         print("done")
     }
     

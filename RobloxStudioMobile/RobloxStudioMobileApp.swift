@@ -110,15 +110,15 @@ func parseToDict(data: String) -> Array<RbxObject>{
                 lineNum += 1
             }
             if toParse[lineNum].replacingOccurrences(of: "\t", with: "") != "</Items>"{
-                let result = parseToDict(data: toParse, startAtLine: lineNum+1)
-                lineNum = result.resumingAt
+                let result = parseToDict(data: Array(toParse[lineNum+1..<toParse.count]), startAtLine: 0)
+                lineNum += result.resumingAt
                 dataSet.append(RbxObject(name: tempName, properties: tempProperties, Items: result.resultTable))
                 tempName = ""
                 tempProperties = [:]
             }
             
         }
-        else if line.replacingOccurrences(of: "\t", with: "").prefix(1) == "<"{
+        else if line.replacingOccurrences(of: "\t", with: "").prefix(2) != "</"{
             let parseLine = line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]
             let parseSplit = parseLine.split(separator: " ")
             
@@ -189,21 +189,22 @@ private func parseToDict(data: Array<Substring>, startAtLine: Int) -> (resultTab
                 lineNum += 1
             }
             if data[lineNum].replacingOccurrences(of: "\t", with: "") != "</Items>"{
-                let result = parseToDict(data: data, startAtLine: lineNum+1)
-                lineNum = result.resumingAt
+                let result = parseToDict(data: Array(data[lineNum+1..<data.count]), startAtLine: 0)
+                lineNum += result.resumingAt
                 dataSet.append(RbxObject(name: tempName, properties: tempProperties, Items: result.resultTable))
                 tempName = ""
                 tempProperties = [:]
             }
         }
-        else if line.replacingOccurrences(of: "\t", with: "").prefix(1) == "<"{
+        else if line.replacingOccurrences(of: "\t", with: "").prefix(2) != "</"{
             let parseLine = line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]
             let parseSplit = parseLine.split(separator: " ")
             
+//            print(parseSplit)
             tempName = String(parseSplit[1])
             
-            let result = parseToDict(data: parseSplit, startAtLine: lineNum+1)
-            lineNum = result.resumingAt
+            let result = parseToDict(data: Array(data[lineNum+1..<data.count]), startAtLine: 0)
+            lineNum += result.resumingAt
             dataSet.append(RbxObject(name: tempName, properties: tempProperties, Items: result.resultTable))
             tempName = ""
             tempProperties = [:]
