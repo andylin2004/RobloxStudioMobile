@@ -51,7 +51,7 @@ extension UTType {
     }
 }
 
-func parseToDict(data: String){
+func parseToDict(data: String) -> Array<RbxObject>{
     let toParse = data.split(whereSeparator: \.isNewline)
     
     var dataSet: Array<RbxObject> = []
@@ -248,5 +248,15 @@ extension StringProtocol {
                     index(range.lowerBound, offsetBy: 1, limitedBy: endIndex) ?? endIndex
         }
         return result
+    }
+}
+
+extension View {
+    @ViewBuilder func isHidden(_ isHidden: Bool) -> some View {
+        if isHidden {
+            self.hidden()
+        } else {
+            self
+        }
     }
 }

@@ -11,12 +11,15 @@ struct EditingView: View {
     @Environment(\.presentationMode) var presentationMode
     let file: String
     let fileName: String
+    let parsedArray: Array<RbxObject>
     
     init(file: String, fileName: String){
         self.file = file
         self.fileName = fileName
         
-        parseToDict(data: file)
+        self.parsedArray = parseToDict(data: file)
+        
+        print("done")
     }
     
     var body: some View {
@@ -33,7 +36,6 @@ struct EditingView: View {
                     Divider()
                     VStack{
                         Text("Properties Placeholder")
-                        Text(file)
                     }.frame(width: geometry.size.width*0.25)
                     
                 }
