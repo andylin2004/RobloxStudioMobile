@@ -148,7 +148,7 @@ private func parseToDict(data: Array<Substring>, startAtLine: Int) -> (resultTab
             lineNum += 1
             while data[lineNum].replacingOccurrences(of: "\t", with: "") != "</Properties>"{
                 line = data[lineNum]
-//                print(line)
+                print(line)
                 
                 if line.contains("<![CDATA["){
                     lineNum += 1
@@ -167,7 +167,7 @@ private func parseToDict(data: Array<Substring>, startAtLine: Int) -> (resultTab
                     
                     lineNum += 1
                     while data[lineNum].replacingOccurrences(of: "\t", with: "") != "</"+propertyType+">"{
-//                        print(toParse[lineNum])
+                        print(data[lineNum])
                         line = data[lineNum]
                         flag.updateValue(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!], forKey: String(line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]))
                         lineNum += 1
@@ -225,7 +225,7 @@ struct PropertyInfo{
     let value: Any
 }
 
-let multiInObject = ["CoordinateFrame", "Vector3", "PhysicalProperties", "Color3"]
+let multiInObject = ["CoordinateFrame", "Vector3", "PhysicalProperties", "Color3", "Vector2"]
 
 extension StringProtocol {
     func index<S: StringProtocol>(of string: S, options: String.CompareOptions = []) -> Index? {
