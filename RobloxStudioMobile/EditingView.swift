@@ -27,16 +27,8 @@ struct EditingView: View {
         NavigationView{
             GeometryReader{ geometry in
                 HStack{
-                    VStack{
-                        ListView()
-                        List(parsedArray, id: \.name){ item in
-                            VStack{
-                                Text(item.name)
-                                Text(item.propertyEnd.description)
-                                Text(item.childEnd?.description ?? "No child")
-                            }
-                        }
-                    }.frame(width: geometry.size.width*0.25)
+                    mainListView(parsedArray: parsedArray, file: file)
+                        .frame(width: geometry.size.width*0.25)
                     Divider()
                     VStack{
                         Text("Enviromental Placeholder")
@@ -45,9 +37,7 @@ struct EditingView: View {
                     VStack{
                         Text("Properties Placeholder")
                     }.frame(width: geometry.size.width*0.25)
-                    
                 }
-                
             }.navigationBarTitle(fileName, displayMode: .inline)
             .toolbar{
                 ToolbarItemGroup(placement: .navigationBarLeading){
@@ -79,6 +69,7 @@ struct EditingView: View {
         }.navigationViewStyle(StackNavigationViewStyle())
     }
 }
+
 
 struct EditingView_Previews: PreviewProvider {
     static var previews: some View {

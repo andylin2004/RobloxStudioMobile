@@ -58,7 +58,8 @@ struct ContentView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 25.0))
             }.opacity(loadingHere ? 1 : 0)
             .onReceive(timer, perform: { _ in
-                print(loading)
+//                print(loading)
+                
                 if loading{
                     loadingHere = true
                 }else{
