@@ -129,7 +129,7 @@ func collectProperty(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -
     while lineNum <= endAtLine{
         var line = data[lineNum].replacingOccurrences(of: "\t", with: "")
         
-        let lineParsed = line[line.index(after: line.startIndex)..<line.endIndex].split(separator: " ")
+        print(line)
         
         if waitForCDATAEnd{
             if line.contains("]]></ProtectedString>"){
@@ -148,6 +148,9 @@ func collectProperty(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -
                 childProperty.updateValue(Double(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!])!, forKey: String(line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]))
             }
         }else{
+            print(line)
+            let lineParsed = line[line.index(after: line.startIndex)..<line.endIndex].split(separator: " ")
+            
             line = String(line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!])
             
             if lineParsed.count > 1{
@@ -158,8 +161,10 @@ func collectProperty(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -
                 tempName = String(lineParsed.first!)
             }
             
-            if line.contains("<![CDATA["){
+            if data[lineNum].contains("<![CDATA["){
                 waitForCDATAEnd = true
+                tempValue = String(data[lineNum]).replacingOccurrences(of: "/t", with: "")
+                tempValue.removeFirst(40)
             }else{
                 line = String(data[lineNum])
                 if (line.lastIndex(of: "<")! < line.firstIndex(of: ">")!){
