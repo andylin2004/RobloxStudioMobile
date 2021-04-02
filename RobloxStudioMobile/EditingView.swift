@@ -17,8 +17,13 @@ struct EditingView: View {
         self.file = file
         self.fileName = fileName
         
+        let start = DispatchTime.now()
         self.parsedArray = parseFile(data: file)
+        let end = DispatchTime.now()
         
+        let nanoTime = end.uptimeNanoseconds - start.uptimeNanoseconds
+        let timeInterval = Double(nanoTime) / 1_000_000_000
+        print(timeInterval.description + "amount of time")
         loading = false
         print("done")
     }

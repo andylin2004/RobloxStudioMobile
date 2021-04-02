@@ -73,17 +73,23 @@ func parseFile(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -> Arra
             line.removeFirst()
             line.removeLast()
             let parsing = line.split(separator: " ")
-            if mode == 0 && parsing.first == "Item"{
-                lookForNumOfTabs = numOfTabs
-                tempName = String(parsing[1])
-            }else if mode == 0 && parsing.first == "Properties" && lookForNumOfTabs + 1 == numOfTabs{
-                propertyStart = lineNum
-                mode = 1
-            }else if mode == 1 && parsing.first == "/Properties" && lookForNumOfTabs + 1 == numOfTabs{
-                propertyEnd = lineNum
-                mode = 2
-            }else if mode == 2 && parsing.first == "/Item" && lookForNumOfTabs == numOfTabs{
-                if lineNum == propertyEnd + 1{
+            
+            switch mode {
+            case 0:
+                if parsing.first == "Item"{
+                    lookForNumOfTabs = numOfTabs
+                    tempName = String(parsing[1])
+                }else if parsing.first == "Properties" && lookForNumOfTabs + 1 == numOfTabs{
+                    propertyStart = lineNum
+                    mode = 1
+                }
+            case 1:
+                if parsing.first == "/Properties" && lookForNumOfTabs + 1 == numOfTabs{
+                    propertyEnd = lineNum
+                    mode = 2
+                }
+            default:
+                if parsing.first == "/Item" && lookForNumOfTabs == numOfTabs && lineNum == propertyEnd + 1{
                     array.append(RbxObject(name: tempName, propertyStart: propertyStart, propertyEnd: propertyEnd))
                 }else{
                     array.append(RbxObject(name: tempName, propertyStart: propertyStart, propertyEnd: propertyEnd, childStart: propertyEnd+1, childEnd: lineNum-1))
