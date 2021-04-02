@@ -31,24 +31,16 @@ struct childView: View{
     var body: some View{
         ForEach(children, id: \.name){ child in
             if child.childEnd == nil && child.childStart == nil{
-                Button(child.name, action:{
-                    print(collectProperty(data: data.split(whereSeparator: \.isNewline), startAtLine: child.propertyStart+1, endAtLine: child.propertyEnd))
-                })
+                ListButton(data: data, child: child)
             }else{
                 DisclosureGroup{
                     childView(startChild: child.childStart!, endChild: child.childEnd!, data: data)
                 } label: {
-                    Button(action:{
-                        print(collectProperty(data: data.split(whereSeparator: \.isNewline), startAtLine: child.propertyStart+1, endAtLine: child.propertyEnd))
-                    }){
-                        Text(child.name)
-                            .foregroundColor(.black)
-                    }
+                    ListButton(data: data, child: child)
                 }
             }
         }
     }
-    
 }
 
 struct mainListView: View{
@@ -65,18 +57,24 @@ struct mainListView: View{
     }
 }
 
-struct disclosureButton: View{
-    let child: RbxObject
+struct ListButton: View{
     let data: String
+    let child: RbxObject
+    @EnvironmentObject var propertyInfo: PropertyInfoArray
     
-    init(child: RbxObject, data: String) {
-        self.child = child
+    init(data: String, child: RbxObject) {
         self.data = data
+        self.child = child
     }
-    var body: some View{
-        Button(child.name, action:{
-            print(collectProperty(data: data.split(whereSeparator: \.isNewline), startAtLine: child.propertyStart, endAtLine: child.propertyEnd))
-        })
+    
+    var body: some View {
+        Button(action:{
+            propertyInfo.properties = collectProperty(data: data.split(whereSeparator: \.isNewline), startAtLine: child.propertyStart+1, endAtLine: child.propertyEnd)
+        }){
+            Text(child.name)
+                .foregroundColor(.black)
+        }
+        .environmentObject(propertyInfo)
     }
 }
 struct SideViews_Previews: PreviewProvider {

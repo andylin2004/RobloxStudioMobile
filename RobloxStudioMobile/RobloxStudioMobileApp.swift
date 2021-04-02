@@ -202,6 +202,10 @@ struct PropertyInfo{
     let value: Any
 }
 
+class PropertyInfoArray: ObservableObject{
+    @Published var properties = Array<PropertyInfo>()
+}
+
 extension StringProtocol {
     func index<S: StringProtocol>(of string: S, options: String.CompareOptions = []) -> Index? {
         range(of: string, options: options)?.lowerBound

@@ -9,6 +9,7 @@ import SwiftUI
 
 struct EditingView: View {
     @Environment(\.presentationMode) var presentationMode
+    @StateObject var properties = PropertyInfoArray()
     let file: String
     let fileName: String
     let parsedArray: Array<RbxObject>
@@ -35,8 +36,11 @@ struct EditingView: View {
                     }.frame(minWidth: 0, maxWidth: .infinity)
                     Divider()
                     VStack{
-                        Text("Properties Placeholder")
-                    }.frame(width: geometry.size.width*0.25)
+                        List(properties.properties, id: \.name){property in
+                            Text(property.name)
+                        }
+                    }
+                        .frame(width: geometry.size.width*0.25)
                 }
             }.navigationBarTitle(fileName, displayMode: .inline)
             .toolbar{
@@ -67,6 +71,7 @@ struct EditingView: View {
                 }
             }
         }.navigationViewStyle(StackNavigationViewStyle())
+        .environmentObject(properties)
     }
 }
 
