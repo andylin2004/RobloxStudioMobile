@@ -51,174 +51,65 @@ extension UTType {
     }
 }
 
-func parseToDict(data: String) -> Array<RbxObject>{
+func parseFile(data: String) -> Array<RbxObject>{
     let toParse = data.split(whereSeparator: \.isNewline)
-    
-    var dataSet: Array<RbxObject> = []
-    
-    var tempProperties: Dictionary<String, PropertyInfo> = [:]
-    
-    var tempName: String = ""
-    
-    var lineNum = 3
-    while lineNum < toParse.count-4{
-        var line = toParse[lineNum]
-        if line.replacingOccurrences(of: "\t", with: "") == "</Item>"{
-            //skip
-        }else if line.replacingOccurrences(of: "\t", with: "") == "<Properties>"{
-            lineNum += 1
-            while toParse[lineNum].replacingOccurrences(of: "\t", with: "") != "</Properties>"{
-                line = toParse[lineNum]
-//                print(line)
-                
-                if line.contains("<![CDATA["){
-                    lineNum += 1
-                    while !toParse[lineNum].contains("]]>"){
-                        line += toParse[lineNum]
-                        lineNum += 1
-                    }
-                }
-                let parseLine = line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]
-                let parseSplit = parseLine.split(separator: " ")
-                
-                let propertyType = String(parseSplit[0])
-                
-//                if multiInObject.contains(propertyType) {
-//                    var flag: Dictionary<String, Any> = [:]
-//
-//                    lineNum += 1
-//                    while toParse[lineNum].replacingOccurrences(of: "\t", with: "") != "</"+propertyType+">"{
-////                        print(toParse[lineNum])
-//                        line = toParse[lineNum]
-//                        flag.updateValue(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!], forKey: String(line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]))
-//                        lineNum += 1
-//                    }
-//                    tempProperties.updateValue(PropertyInfo(type: "", value: flag), forKey: propertyType)
-//                }else{
-                let propertyName = String(parseSplit.last!)
-                    let propertyValue: String
-                    if line.firstIndex(of: ">")! < line.lastIndex(of: "<")!{
-                        propertyValue = String(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!])
-                    }else{
-                        propertyValue = ""
-                    }
-                    let propertyInfo = PropertyInfo(type: propertyType, value: propertyValue)
-                    
-                    tempProperties.updateValue(propertyInfo, forKey: propertyName)
-                    
-//                }
-                lineNum += 1
-            }
-            if toParse[lineNum].replacingOccurrences(of: "\t", with: "") != "</Items>"{
-                let result = parseToDict(data: Array(toParse[lineNum+1..<toParse.count]), startAtLine: 0)
-                lineNum += result.resumingAt
-                dataSet.append(RbxObject(name: tempName, properties: tempProperties, Items: result.resultTable))
-                tempName = ""
-                tempProperties = [:]
-            }
-            
-        }
-        else if line.replacingOccurrences(of: "\t", with: "").prefix(2) != "</"{
-            let parseLine = line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]
-            let parseSplit = parseLine.split(separator: " ")
-            
-//            print(line)
-            tempName = String(parseSplit[1])
-            
-        }
-        lineNum += 1
-    }
-    return dataSet
+    return parseFile(data: toParse, startAtLine: 3, endAtLine: toParse.count-5)
 }
 
-private func parseToDict(data: Array<Substring>, startAtLine: Int) -> (resultTable: Array<RbxObject>, resumingAt: Int){
+func parseFile(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -> Array<RbxObject>{
     var lineNum = startAtLine
     
-    var dataSet: Array<RbxObject> = []
+    var array: Array<RbxObject> = []
+    var mode = 0 //0 = wait for property 1 = at property 2 = at child
     
-    var tempProperties: Dictionary<String, PropertyInfo> = [:]
-    
-    var tempName: String = ""
-    
-    while lineNum < data.count - 4 && data[lineNum].replacingOccurrences(of: "\t", with: "") != "</Item>"{
-        var line = data[lineNum]
-//        print(line)
-//        print(lineNum)
-        if line.replacingOccurrences(of: "\t", with: "") == "<Properties>"{
-            lineNum += 1
-            while data[lineNum].replacingOccurrences(of: "\t", with: "") != "</Properties>"{
-                line = data[lineNum]
-//                print(line)
-                
-                if line.contains("<![CDATA["){
-                    lineNum += 1
-                    while !data[lineNum].contains("]]>"){
-                        line += data[lineNum]
-                        lineNum += 1
-                    }
+    var tempName = ""
+    var lookForNumOfTabs = 0
+    var propertyStart = 0
+    var propertyEnd = 0
+    while lineNum <= endAtLine{
+        if data[lineNum].replacingOccurrences(of: "\t", with: "").first == "<"{
+            let numOfTabs = data[lineNum].components(separatedBy: "\t").count
+            var line = data[lineNum].replacingOccurrences(of: "\t", with: "")
+            line.removeFirst()
+            line.removeLast()
+            let parsing = line.split(separator: " ")
+            if mode == 0 && parsing.first == "Item"{
+                lookForNumOfTabs = numOfTabs
+                tempName = String(parsing[1])
+            }else if mode == 0 && parsing.first == "Properties" && lookForNumOfTabs == numOfTabs + 1{
+                propertyStart = lineNum
+                mode = 1
+            }else if mode == 1 && parsing.first == "/Properties" && lookForNumOfTabs == numOfTabs + 1{
+                propertyEnd = lineNum
+                mode = 2
+            }else if mode == 2 && parsing.first == "/Items" && lookForNumOfTabs == numOfTabs{
+                if lineNum == propertyEnd + 1{
+                    array.append(RbxObject(name: tempName, propertyStart: propertyStart, propertyEnd: propertyEnd))
+                }else{
+                    array.append(RbxObject(name: tempName, propertyStart: propertyStart, propertyEnd: propertyEnd, childStart: propertyEnd+1, childEnd: lineNum-1))
                 }
-                let parseLine = line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]
-                let parseSplit = parseLine.split(separator: " ")
-                
-                let propertyType = String(parseSplit[0] == parseSplit.last! ? "Int" : parseSplit[0])
-                
-//                if multiInObject.contains(propertyType) {
-//                    var flag: Dictionary<String, Any> = [:]
-//
-//                    lineNum += 1
-//                    while data[lineNum].replacingOccurrences(of: "\t", with: "") != "</"+propertyType+">"{
-//                        print(data[lineNum])
-//                        line = data[lineNum]
-//                        flag.updateValue(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!], forKey: String(line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]))
-//                        lineNum += 1
-//                    }
-//                    tempProperties.updateValue(PropertyInfo(type: "", value: flag), forKey: propertyType)
-//                }else{
-                    let propertyName = String(parseSplit.last!)
-                    let propertyValue: String
-                    if line.firstIndex(of: ">")! < line.lastIndex(of: "<")!{
-                        propertyValue = String(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!])
-                    }else{
-                        propertyValue = ""
-                    }
-                    let propertyInfo = PropertyInfo(type: propertyType, value: propertyValue)
-                    
-                    tempProperties.updateValue(propertyInfo, forKey: propertyName)
-                    
-//                }
-                lineNum += 1
+                mode = 0
             }
-            if data[lineNum].replacingOccurrences(of: "\t", with: "") != "</Items>"{
-                let result = parseToDict(data: Array(data[lineNum+1..<data.count]), startAtLine: 0)
-                lineNum += result.resumingAt
-                dataSet.append(RbxObject(name: tempName, properties: tempProperties, Items: result.resultTable))
-                tempName = ""
-                tempProperties = [:]
-            }
-        }
-        else if line.replacingOccurrences(of: "\t", with: "").prefix(2) != "</"{
-            let parseLine = line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]
-            let parseSplit = parseLine.split(separator: " ")
-            
-//            print(parseSplit)
-            tempName = String(parseSplit[1])
-            
-            let result = parseToDict(data: Array(data[lineNum+1..<data.count]), startAtLine: 0)
-            lineNum += result.resumingAt
-            dataSet.append(RbxObject(name: tempName, properties: tempProperties, Items: result.resultTable))
-            tempName = ""
-            tempProperties = [:]
         }
         lineNum += 1
     }
-    
-    return (dataSet, lineNum-1)
+    print(array)
+    return array
 }
 
 struct RbxObject{
+    init(name: String, propertyStart: Int, propertyEnd: Int, childStart: Int? = nil, childEnd: Int? = nil) {
+        self.name = name
+        self.propertyStart = propertyStart
+        self.propertyEnd = propertyEnd
+        self.childStart = childStart
+        self.childEnd = childEnd
+    }
     let name: String
-    let properties: Dictionary<String, PropertyInfo>
-    let Items: Array<RbxObject>
+    let propertyStart: Int
+    let propertyEnd: Int
+    let childStart: Int?
+    let childEnd: Int?
 }
 
 struct PropertyInfo{

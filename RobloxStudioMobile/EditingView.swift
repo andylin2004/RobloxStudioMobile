@@ -17,7 +17,7 @@ struct EditingView: View {
         self.file = file
         self.fileName = fileName
         
-        self.parsedArray = parseToDict(data: file)
+        self.parsedArray = parseFile(data: file)
         
         loading = false
         print("done")
@@ -29,6 +29,7 @@ struct EditingView: View {
                 HStack{
                     VStack{
                         ListView()
+                        Text(parsedArray.description)
                     }.frame(width: geometry.size.width*0.25)
                     Divider()
                     VStack{
