@@ -36,7 +36,9 @@ struct childView: View{
                 DisclosureGroup{
                     childView(startChild: child.childStart!, endChild: child.childEnd!, data: data)
                 } label: {
-                    Text(child.name)
+                    Button(child.name, action:{
+                        print(collectProperty(data: data.split(whereSeparator: \.isNewline), startAtLine: child.propertyStart+1, endAtLine: child.propertyEnd))
+                    })
                 }
             }
         }
@@ -58,6 +60,20 @@ struct mainListView: View{
     }
 }
 
+struct disclosureButton: View{
+    let child: RbxObject
+    let data: String
+    
+    init(child: RbxObject, data: String) {
+        self.child = child
+        self.data = data
+    }
+    var body: some View{
+        Button(child.name, action:{
+            print(collectProperty(data: data.split(whereSeparator: \.isNewline), startAtLine: child.propertyStart, endAtLine: child.propertyEnd))
+        })
+    }
+}
 struct SideViews_Previews: PreviewProvider {
     static var previews: some View {
         ListView()

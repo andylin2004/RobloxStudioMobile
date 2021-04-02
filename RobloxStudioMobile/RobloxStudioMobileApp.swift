@@ -113,6 +113,67 @@ func parseFile(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -> Arra
     return array
 }
 
+func collectProperty(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -> Array<PropertyInfo>{
+    var properties: Array<PropertyInfo> = []
+    var lineNum = startAtLine
+    
+    var tempName = ""
+    var tempType = ""
+    var tempValue = ""
+    
+    var childProperty: Dictionary<String, Double> = [:]
+    
+    var waitForCDATAEnd = false
+    var waitForChildPropertyEnd = false
+    
+    while lineNum <= endAtLine{
+        var line = data[lineNum].replacingOccurrences(of: "\t", with: "")
+        
+        let lineParsed = line[line.index(after: line.startIndex)..<line.endIndex].split(separator: " ")
+        
+        if waitForCDATAEnd{
+            if line.contains("]]></ProtectedString>"){
+                waitForCDATAEnd = false
+                properties.append(PropertyInfo(name: tempName, type: tempType, value: tempValue))
+            }else{
+                tempValue += data[lineNum]
+            }
+        }else if waitForChildPropertyEnd{
+            print(tempType)
+            if line == "</"+tempType+">"{
+                waitForChildPropertyEnd = false
+                properties.append(PropertyInfo(name: tempName, type: tempType, value: childProperty))
+                childProperty = [:]
+            }else{
+                childProperty.updateValue(Double(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!])!, forKey: String(line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]))
+            }
+        }else{
+            line = String(line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!])
+            
+            if lineParsed.count > 1{
+                tempType = String(lineParsed.first!)
+                tempName = String(lineParsed[1])
+            }else{
+                tempType = "Array"
+                tempName = String(lineParsed.first!)
+            }
+            
+            if line.contains("<![CDATA["){
+                waitForCDATAEnd = true
+            }else{
+                line = String(data[lineNum])
+                if (line.lastIndex(of: "<")! < line.firstIndex(of: ">")!){
+                    waitForChildPropertyEnd = true
+                }else{
+                    properties.append(PropertyInfo(name: tempName, type: tempType, value: line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!]))
+                }
+            }
+        }
+        lineNum += 1
+    }
+    return properties
+}
+
 struct RbxObject{
     init(name: String, className: String, propertyStart: Int, propertyEnd: Int, childStart: Int? = nil, childEnd: Int? = nil) {
         self.name = name
@@ -131,11 +192,10 @@ struct RbxObject{
 }
 
 struct PropertyInfo{
+    let name: String
     let type: String
     let value: Any
 }
-
-let multiInObject = ["CoordinateFrame", "Vector3", "PhysicalProperties", "Color3", "Vector2"]
 
 extension StringProtocol {
     func index<S: StringProtocol>(of string: S, options: String.CompareOptions = []) -> Index? {
