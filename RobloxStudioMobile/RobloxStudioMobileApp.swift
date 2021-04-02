@@ -104,7 +104,7 @@ func parseFile(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -> Arra
         }
         lineNum += 1
     }
-    print(array)
+//    print(array)
     return array
 }
 
