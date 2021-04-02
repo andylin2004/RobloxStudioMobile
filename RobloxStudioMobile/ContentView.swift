@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var loading: LoadingFile
-    let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
+    
     var body: some View {
         ZStack{
             NavigationView{
@@ -117,7 +117,7 @@ struct FileView: View{
                         print("now loading")
                         editorShown.toggle()
                     } else {
-                 ≈       // Handle denied access
+                        // Handle denied access
                     }
                 } catch {
                     // Handle failure.
