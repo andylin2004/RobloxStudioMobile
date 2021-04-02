@@ -38,9 +38,12 @@ struct childView: View{
                 DisclosureGroup{
                     childView(startChild: child.childStart!, endChild: child.childEnd!, data: data)
                 } label: {
-                    Button(child.name, action:{
+                    Button(action:{
                         print(collectProperty(data: data.split(whereSeparator: \.isNewline), startAtLine: child.propertyStart+1, endAtLine: child.propertyEnd))
-                    })
+                    }){
+                        Text(child.name)
+                            .foregroundColor(.black)
+                    }
                 }
             }
         }
