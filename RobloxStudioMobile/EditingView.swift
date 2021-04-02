@@ -17,13 +17,8 @@ struct EditingView: View {
         self.file = file
         self.fileName = fileName
         
-        let start = DispatchTime.now()
         self.parsedArray = parseFile(data: file)
-        let end = DispatchTime.now()
         
-        let nanoTime = end.uptimeNanoseconds - start.uptimeNanoseconds
-        let timeInterval = Double(nanoTime) / 1_000_000_000
-        print(timeInterval.description + "amount of time")
         loading = false
         print("done")
     }
@@ -34,7 +29,13 @@ struct EditingView: View {
                 HStack{
                     VStack{
                         ListView()
-                        Text(parsedArray.description)
+                        List(parsedArray, id: \.name){ item in
+                            VStack{
+                                Text(item.name)
+                                Text(item.propertyEnd.description)
+                                Text(item.childEnd?.description ?? "No child")
+                            }
+                        }
                     }.frame(width: geometry.size.width*0.25)
                     Divider()
                     VStack{
