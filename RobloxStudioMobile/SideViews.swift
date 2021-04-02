@@ -31,7 +31,9 @@ struct childView: View{
     var body: some View{
         ForEach(children, id: \.name){ child in
             if child.childEnd == nil && child.childStart == nil{
-                Text(child.name)
+                Button(child.name, action:{
+                    print(collectProperty(data: data.split(whereSeparator: \.isNewline), startAtLine: child.propertyStart+1, endAtLine: child.propertyEnd))
+                })
             }else{
                 DisclosureGroup{
                     childView(startChild: child.childStart!, endChild: child.childEnd!, data: data)
