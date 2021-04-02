@@ -60,12 +60,13 @@ func parseFile(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -> Arra
     var lineNum = startAtLine
     
     var array: Array<RbxObject> = []
-    var mode = 0 //0 = wait for property 1 = at property 2 = at child
+    var mode = 0 //0 = wait for property 1 = at property 2 = at child 3 = find end of child
     
     var tempName = ""
     var lookForNumOfTabs = 0
     var propertyStart = 0
     var propertyEnd = 0
+    var tempClassName = ""
     while lineNum <= endAtLine{
         if data[lineNum].replacingOccurrences(of: "\t", with: "").first == "<"{
             let numOfTabs = data[lineNum].components(separatedBy: "\t").count
@@ -78,7 +79,10 @@ func parseFile(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -> Arra
             case 0:
                 if parsing.first == "Item"{
                     lookForNumOfTabs = numOfTabs
-                    tempName = String(parsing[1])
+                    tempClassName = String(parsing[1])
+                    tempClassName.removeFirst(7)
+                    tempClassName.removeLast()
+                    tempName = tempClassName
                 }else if parsing.first == "Properties" && lookForNumOfTabs + 1 == numOfTabs{
                     propertyStart = lineNum
                     mode = 1
@@ -87,17 +91,19 @@ func parseFile(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -> Arra
                 if parsing.first == "/Properties" && lookForNumOfTabs + 1 == numOfTabs{
                     propertyEnd = lineNum
                     mode = 2
+                }else if parsing.count > 1 && parsing.first == "string" && String(parsing[1]).prefix(11) == "name=\"Name\"" && lookForNumOfTabs + 2 == numOfTabs{
+                    tempName = String(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!])
                 }
             case 2:
                 if parsing.first == "/Item" && lookForNumOfTabs == numOfTabs{
-                    array.append(RbxObject(name: tempName, propertyStart: propertyStart, propertyEnd: propertyEnd))
+                    array.append(RbxObject(name: tempName, className: tempClassName, propertyStart: propertyStart, propertyEnd: propertyEnd))
                     mode = 0
                 }else{
                     mode = 3
                 }
             default:
                 if parsing.first == "/Item" && lookForNumOfTabs == numOfTabs{
-                    array.append(RbxObject(name: tempName, propertyStart: propertyStart, propertyEnd: propertyEnd, childStart: propertyEnd+1, childEnd: lineNum-1))
+                    array.append(RbxObject(name: tempName, className: tempClassName, propertyStart: propertyStart, propertyEnd: propertyEnd, childStart: propertyEnd+1, childEnd: lineNum-1))
                     mode = 0
                 }
             }
@@ -108,14 +114,16 @@ func parseFile(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -> Arra
 }
 
 struct RbxObject{
-    init(name: String, propertyStart: Int, propertyEnd: Int, childStart: Int? = nil, childEnd: Int? = nil) {
+    init(name: String, className: String, propertyStart: Int, propertyEnd: Int, childStart: Int? = nil, childEnd: Int? = nil) {
         self.name = name
+        self.className = className
         self.propertyStart = propertyStart
         self.propertyEnd = propertyEnd
         self.childStart = childStart
         self.childEnd = childEnd
     }
     let name: String
+    let className: String
     let propertyStart: Int
     let propertyEnd: Int
     let childStart: Int?
