@@ -76,13 +76,13 @@ func parseFile(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -> Arra
             if mode == 0 && parsing.first == "Item"{
                 lookForNumOfTabs = numOfTabs
                 tempName = String(parsing[1])
-            }else if mode == 0 && parsing.first == "Properties" && lookForNumOfTabs == numOfTabs + 1{
+            }else if mode == 0 && parsing.first == "Properties" && lookForNumOfTabs + 1 == numOfTabs{
                 propertyStart = lineNum
                 mode = 1
-            }else if mode == 1 && parsing.first == "/Properties" && lookForNumOfTabs == numOfTabs + 1{
+            }else if mode == 1 && parsing.first == "/Properties" && lookForNumOfTabs + 1 == numOfTabs{
                 propertyEnd = lineNum
                 mode = 2
-            }else if mode == 2 && parsing.first == "/Items" && lookForNumOfTabs == numOfTabs{
+            }else if mode == 2 && parsing.first == "/Item" && lookForNumOfTabs == numOfTabs{
                 if lineNum == propertyEnd + 1{
                     array.append(RbxObject(name: tempName, propertyStart: propertyStart, propertyEnd: propertyEnd))
                 }else{
