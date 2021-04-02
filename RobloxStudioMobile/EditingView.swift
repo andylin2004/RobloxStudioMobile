@@ -9,6 +9,7 @@ import SwiftUI
 
 struct EditingView: View {
     @Environment(\.presentationMode) var presentationMode
+    @EnvironmentObject var loading: LoadingFile
     let file: String
     let fileName: String
     
@@ -68,6 +69,10 @@ struct EditingView: View {
                 }
             }
         }.navigationViewStyle(StackNavigationViewStyle())
+        .environmentObject(loading)
+        .onAppear{
+            loading.loading = false
+        }
     }
 }
 

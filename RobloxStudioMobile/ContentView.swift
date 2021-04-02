@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @EnvironmentObject var loading: LoadingFile
+    @StateObject var loading = LoadingFile()
     
     var body: some View {
         ZStack{
@@ -74,7 +74,7 @@ struct FileView: View{
     @State var fileName = ""
     @State var editorShown = false
     @State var alertShown = false
-    @StateObject var loading = LoadingFile()
+    @EnvironmentObject var loading: LoadingFile
     
     var body: some View{
         Text("Files placeholder")
@@ -125,7 +125,7 @@ struct FileView: View{
                     print(error.localizedDescription)
                 }
             }
-            .environmentObject(self.loading)
+            .environmentObject(loading)
     }
 }
 
