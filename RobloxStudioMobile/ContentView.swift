@@ -7,10 +7,9 @@
 
 import SwiftUI
 
-var loading = false
 struct ContentView: View {
-    @State var loadingHere = true
-    let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
+    @StateObject var loading = LoadingFile()
+    
     var body: some View {
         ZStack{
             NavigationView{
@@ -43,8 +42,8 @@ struct ContentView: View {
                     EditButton()
                 }
                 ExploreView()
-            }.saturation(loadingHere ? 0 : 1)
-            .disabled(loadingHere)
+            }
+            .saturation(loading.loading ? 0.2 : 1)
             ZStack{
                 Rectangle()
                     .opacity(0.3)
@@ -56,17 +55,9 @@ struct ContentView: View {
                     .background(Color.black)
                     .opacity(0.5)
                     .clipShape(RoundedRectangle(cornerRadius: 25.0))
-            }.opacity(loadingHere ? 1 : 0)
-            .onReceive(timer, perform: { _ in
-//                print(loading)
-                
-                if loading{
-                    loadingHere = true
-                }else{
-                    loadingHere = false
-                }
-            })
+            }.opacity(loading.loading ? 1 : 0)
         }
+        .environmentObject(self.loading)
     }
 }
 
@@ -83,6 +74,7 @@ struct FileView: View{
     @State var fileName = ""
     @State var editorShown = false
     @State var alertShown = false
+    @EnvironmentObject var loading: LoadingFile
     
     var body: some View{
         Text("Files placeholder")
@@ -107,6 +99,7 @@ struct FileView: View{
                     }
                 }
             }
+            .environmentObject(self.loading)
             .fullScreenCover(isPresented: $editorShown, content: {EditingView(file: file, fileName: fileName)})
             .fileImporter(
                 isPresented: $isImporting,
@@ -120,7 +113,7 @@ struct FileView: View{
                         defer { selectedFile.stopAccessingSecurityScopedResource() }
                         file = input
                         fileName = (selectedFile.description as NSString).lastPathComponent.removingPercentEncoding!
-                        loading = true
+                        loading.loading = true
                         print("now loading")
                         editorShown.toggle()
                     } else {
@@ -132,6 +125,7 @@ struct FileView: View{
                     print(error.localizedDescription)
                 }
             }
+            .environmentObject(loading)
     }
 }
 

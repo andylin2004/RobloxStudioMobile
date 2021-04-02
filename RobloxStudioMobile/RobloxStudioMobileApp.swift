@@ -206,6 +206,10 @@ class PropertyInfoArray: ObservableObject{
     @Published var properties = Array<PropertyInfo>()
 }
 
+class LoadingFile: ObservableObject{
+    @Published var loading = false
+}
+
 extension StringProtocol {
     func index<S: StringProtocol>(of string: S, options: String.CompareOptions = []) -> Index? {
         range(of: string, options: options)?.lowerBound
