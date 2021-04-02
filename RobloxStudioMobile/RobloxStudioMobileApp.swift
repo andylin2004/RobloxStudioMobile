@@ -88,13 +88,18 @@ func parseFile(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -> Arra
                     propertyEnd = lineNum
                     mode = 2
                 }
-            default:
-                if parsing.first == "/Item" && lookForNumOfTabs == numOfTabs && lineNum == propertyEnd + 1{
+            case 2:
+                if parsing.first == "/Item" && lookForNumOfTabs == numOfTabs{
                     array.append(RbxObject(name: tempName, propertyStart: propertyStart, propertyEnd: propertyEnd))
+                    mode = 0
                 }else{
-                    array.append(RbxObject(name: tempName, propertyStart: propertyStart, propertyEnd: propertyEnd, childStart: propertyEnd+1, childEnd: lineNum-1))
+                    mode = 3
                 }
-                mode = 0
+            default:
+                if parsing.first == "/Item" && lookForNumOfTabs == numOfTabs{
+                    array.append(RbxObject(name: tempName, propertyStart: propertyStart, propertyEnd: propertyEnd, childStart: propertyEnd+1, childEnd: lineNum-1))
+                    mode = 0
+                }
             }
         }
         lineNum += 1
