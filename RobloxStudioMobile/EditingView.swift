@@ -10,6 +10,7 @@ import SwiftUI
 struct EditingView: View {
     @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject var loading: LoadingFile
+    @StateObject var properties = PropertyInfoArray()
     let file: String
     let fileName: String
     let parsedArray: Array<RbxObject>
@@ -20,7 +21,6 @@ struct EditingView: View {
         
         self.parsedArray = parseFile(data: file)
         
-        loading = false
         print("done")
     }
     
@@ -72,6 +72,7 @@ struct EditingView: View {
             }
         }.navigationViewStyle(StackNavigationViewStyle())
         .environmentObject(loading)
+        .environmentObject(properties)
         .onAppear{
             loading.loading = false
         }
