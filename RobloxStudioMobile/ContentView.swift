@@ -107,22 +107,26 @@ struct FileView: View{
                 allowsMultipleSelection: false
             ) { result in
                 do {
-                    guard let selectedFile: URL = try result.get().first else { return }
+                    loading.loading = true
+                    guard let selectedFile: URL = try result.get().first else {
+                        loading.loading = false
+                        return }
                     if selectedFile.startAccessingSecurityScopedResource() {
                         guard let input = String(data: try Data(contentsOf: selectedFile), encoding: .utf8) else { return }
                         defer { selectedFile.stopAccessingSecurityScopedResource() }
                         file = input
                         fileName = (selectedFile.description as NSString).lastPathComponent.removingPercentEncoding!
-                        loading.loading = true
                         print("now loading")
                         editorShown.toggle()
                     } else {
                         // Handle denied access
+                        loading.loading = false
                     }
                 } catch {
                     // Handle failure.
                     print("Unable to read file contents")
                     print(error.localizedDescription)
+                    loading.loading = false
                 }
             }
             .environmentObject(loading)

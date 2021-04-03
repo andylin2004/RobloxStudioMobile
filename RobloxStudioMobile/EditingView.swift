@@ -10,10 +10,11 @@ import SwiftUI
 struct EditingView: View {
     @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject var loading: LoadingFile
-    @StateObject var properties = PropertyInfoArray()
+    @StateObject var propertyList = PropertyInfoArray()
     let file: String
     let fileName: String
     let parsedArray: Array<RbxObject>
+    @State var dummy = ""
     
     init(file: String, fileName: String){
         self.file = file
@@ -36,9 +37,7 @@ struct EditingView: View {
                     }.frame(minWidth: 0, maxWidth: .infinity)
                     Divider()
                     VStack{
-                        List(properties.properties, id: \.name){property in
-                            Text(property.name)
-                        }
+                        PropertyView()
                     }
                         .frame(width: geometry.size.width*0.25)
                 }
@@ -72,13 +71,50 @@ struct EditingView: View {
             }
         }.navigationViewStyle(StackNavigationViewStyle())
         .environmentObject(loading)
-        .environmentObject(properties)
+        .environmentObject(propertyList)
         .onAppear{
             loading.loading = false
         }
     }
 }
 
+struct PropertyView: View{
+    @EnvironmentObject var properties: PropertyInfoArray
+    
+    var body: some View{
+        List(0..<properties.properties.count, id: \.self){property in
+            PropertyCell(arraySlot: property)
+        }
+        .onChange(of: properties.properties.count, perform: { value in
+            /*@START_MENU_TOKEN@*//*@PLACEHOLDER=Code@*/ /*@END_MENU_TOKEN@*/
+        })
+        .environmentObject(properties)
+    }
+}
+
+struct PropertyCell: View{
+    @State var newPropertyValue: String = ""
+    @EnvironmentObject var properties: PropertyInfoArray
+    let arraySlot: Int
+    
+    init(arraySlot: Int){
+        self.arraySlot = arraySlot
+    }
+    
+    var body: some View{
+        HStack{
+            Text(properties.properties[arraySlot].name)
+            TextField("", text: $newPropertyValue)
+                .onChange(of: newPropertyValue, perform: { value in
+                    properties.properties[arraySlot].value = newPropertyValue
+                })
+        }
+        .environmentObject(properties)
+        .onAppear(){
+            self.newPropertyValue = properties.properties[arraySlot].value as! String
+        }
+    }
+}
 
 struct EditingView_Previews: PreviewProvider {
     static var previews: some View {

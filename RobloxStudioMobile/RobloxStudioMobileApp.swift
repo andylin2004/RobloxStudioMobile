@@ -129,7 +129,7 @@ func collectProperty(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -
     while lineNum <= endAtLine{
         var line = data[lineNum].replacingOccurrences(of: "\t", with: "")
         
-        print(line)
+//        print(line)
         
         if waitForCDATAEnd{
             if line.contains("]]></ProtectedString>"){
@@ -139,7 +139,7 @@ func collectProperty(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -
                 tempValue += data[lineNum]
             }
         }else if waitForChildPropertyEnd{
-            print(tempType)
+//            print(tempType)
             if line == "</"+tempType+">"{
                 waitForChildPropertyEnd = false
                 properties.append(PropertyInfo(name: tempName, type: tempType, value: childProperty))
@@ -148,7 +148,7 @@ func collectProperty(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -
                 childProperty.updateValue(Double(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!])!, forKey: String(line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]))
             }
         }else{
-            print(line)
+//            print(line)
             let lineParsed = line[line.index(after: line.startIndex)..<line.endIndex].split(separator: " ")
             
             line = String(line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!])
@@ -170,7 +170,8 @@ func collectProperty(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -
                 if (line.lastIndex(of: "<")! < line.firstIndex(of: ">")!){
                     waitForChildPropertyEnd = true
                 }else{
-                    properties.append(PropertyInfo(name: tempName, type: tempType, value: line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!]))
+                    tempName.removeFirst(6)
+                    properties.append(PropertyInfo(name: String(tempName[tempName.startIndex..<tempName.index(before: tempName.firstIndex(of: ">")!)]), type: tempType, value: String(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!])))
                 }
             }
         }
@@ -199,7 +200,7 @@ struct RbxObject{
 struct PropertyInfo{
     let name: String
     let type: String
-    let value: Any
+    var value: Any
 }
 
 class PropertyInfoArray: ObservableObject{

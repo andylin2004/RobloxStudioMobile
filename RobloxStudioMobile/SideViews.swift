@@ -77,6 +77,7 @@ struct ListButton: View{
         .environmentObject(propertyInfo)
     }
 }
+
 struct SideViews_Previews: PreviewProvider {
     static var previews: some View {
         ListView()
