@@ -22,7 +22,6 @@ struct EditingView: View {
         
         self.parsedArray = parseFile(data: file)
         
-        print("done")
     }
     
     var body: some View {

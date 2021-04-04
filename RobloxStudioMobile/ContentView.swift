@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject var loading = LoadingFile()
+    @Environment(\.horizontalSizeClass) var sizeClass
     
     var body: some View {
         ZStack{

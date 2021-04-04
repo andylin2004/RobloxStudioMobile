@@ -72,7 +72,7 @@ struct ListButton: View{
             propertyInfo.properties = collectProperty(data: data.split(whereSeparator: \.isNewline), startAtLine: child.propertyStart+1, endAtLine: child.propertyEnd)
         }){
             Text(child.name)
-                .foregroundColor(.black)
+                .foregroundColor(Color(UIColor.label))
         }
         .environmentObject(propertyInfo)
     }
