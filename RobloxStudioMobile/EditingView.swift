@@ -107,7 +107,9 @@ struct PropertyCell: View{
             Text(property.name)
             TextField("", text: $newPropertyValue)
                 .onChange(of: newPropertyValue, perform: { value in
-                    properties.properties[property.id].value = newPropertyValue
+                    if property.id < properties.properties.count{
+                        properties.properties[property.id].value = newPropertyValue
+                    }
                 })
         }
         .environmentObject(properties)
