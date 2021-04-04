@@ -134,7 +134,7 @@ func collectProperty(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -
         if waitForCDATAEnd{
             if line.contains("]]></ProtectedString>"){
                 waitForCDATAEnd = false
-                properties.append(PropertyInfo(name: tempName, type: tempType, value: tempValue))
+                properties.append(PropertyInfo(id: properties.endIndex, name: tempName, type: tempType, value: tempValue))
             }else{
                 tempValue += data[lineNum]
             }
@@ -142,7 +142,7 @@ func collectProperty(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -
 //            print(tempType)
             if line == "</"+tempType+">"{
                 waitForChildPropertyEnd = false
-                properties.append(PropertyInfo(name: tempName, type: tempType, value: childProperty))
+                properties.append(PropertyInfo(id: properties.endIndex, name: tempName, type: tempType, value: childProperty))
                 childProperty = [:]
             }else{
                 childProperty.updateValue(Double(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!])!, forKey: String(line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]))
@@ -171,7 +171,7 @@ func collectProperty(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -
                     waitForChildPropertyEnd = true
                 }else{
                     tempName.removeFirst(6)
-                    properties.append(PropertyInfo(name: String(tempName[tempName.startIndex..<tempName.index(before: tempName.firstIndex(of: ">")!)]), type: tempType, value: String(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!])))
+                    properties.append(PropertyInfo(id: properties.endIndex, name: String(tempName[tempName.startIndex..<tempName.index(before: tempName.firstIndex(of: ">")!)]), type: tempType, value: String(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!])))
                 }
             }
         }
@@ -197,7 +197,8 @@ struct RbxObject{
     let childEnd: Int?
 }
 
-struct PropertyInfo{
+struct PropertyInfo: Identifiable{
+    let id: Int
     let name: String
     let type: String
     var value: Any

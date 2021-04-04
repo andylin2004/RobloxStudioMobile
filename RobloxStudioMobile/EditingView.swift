@@ -82,12 +82,9 @@ struct PropertyView: View{
     @EnvironmentObject var properties: PropertyInfoArray
     
     var body: some View{
-        List(0..<properties.properties.count, id: \.self){property in
-            PropertyCell(arraySlot: property)
+        List(properties.properties){property in
+            PropertyCell(property: property)
         }
-        .onChange(of: properties.properties.count, perform: { value in
-            /*@START_MENU_TOKEN@*//*@PLACEHOLDER=Code@*/ /*@END_MENU_TOKEN@*/
-        })
         .environmentObject(properties)
     }
 }
@@ -95,24 +92,31 @@ struct PropertyView: View{
 struct PropertyCell: View{
     @State var newPropertyValue: String = ""
     @EnvironmentObject var properties: PropertyInfoArray
-    let arraySlot: Int
+    let property: PropertyInfo
     
-    init(arraySlot: Int){
-        self.arraySlot = arraySlot
+    init(property: PropertyInfo){
+        self.property = property
+        
+        if property.value is String{
+            newPropertyValue = property.value as! String
+        }
     }
     
     var body: some View{
         HStack{
-            Text(properties.properties[arraySlot].name)
+            Text(property.name)
             TextField("", text: $newPropertyValue)
                 .onChange(of: newPropertyValue, perform: { value in
-                    properties.properties[arraySlot].value = newPropertyValue
+                    properties.properties[property.id].value = newPropertyValue
                 })
         }
         .environmentObject(properties)
         .onAppear(){
-            self.newPropertyValue = properties.properties[arraySlot].value as! String
+            newPropertyValue = property.value as! String
         }
+        .onChange(of: property.name, perform: { value in
+            newPropertyValue = property.value as! String
+        })
     }
 }
 
