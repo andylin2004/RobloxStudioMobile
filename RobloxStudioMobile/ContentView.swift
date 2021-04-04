@@ -14,33 +14,66 @@ struct ContentView: View {
     var body: some View {
         ZStack{
             NavigationView{
-                List{
-                    NavigationLink(destination: ExploreView()){
-                        Label("Explore", systemImage: "house")
-                    }
-                    NavigationLink(destination: FileView()){
-                        Label("Files", systemImage: "folder")
-                    }
-                    NavigationLink(
-                        destination: SettingView(),
-                        label: {
-                            Label("Settings", systemImage: "gear")
-                        })
-                    Section(header: Text("Dev Only")){
+                if sizeClass == .regular{
+                    List{
+                        NavigationLink(destination: ExploreView()){
+                            Label("Explore", systemImage: "house")
+                        }
+                        NavigationLink(destination: FileView()){
+                            Label("Files", systemImage: "folder")
+                        }
                         NavigationLink(
-                            destination: EditingView(file: "", fileName: "")
-                                .navigationBarHidden(true),
+                            destination: SettingView(),
                             label: {
-                                Text("Dev")
+                                Label("Settings", systemImage: "gear")
                             })
+                        Section(header: Text("Dev Only")){
+                            NavigationLink(
+                                destination: EditingView(file: "", fileName: "")
+                                    .navigationBarHidden(true),
+                                label: {
+                                    Text("Dev")
+                                })
+                        }
+                        Section(header: Text("Favorites")){
+                            
+                        }
                     }
-                    Section(header: Text("Favorites")){
-                        
+                    .listStyle(SidebarListStyle())
+                    .navigationTitle("Home")
+                    .toolbar{
+                        EditButton()
                     }
-                }.listStyle(SidebarListStyle())
-                .navigationTitle("Home")
-                .toolbar{
-                    EditButton()
+                }else{
+                    List{
+                        NavigationLink(destination: ExploreView()){
+                            Label("Explore", systemImage: "house")
+                        }
+                        NavigationLink(destination: FileView()){
+                            Label("Files", systemImage: "folder")
+                        }
+                        NavigationLink(
+                            destination: SettingView(),
+                            label: {
+                                Label("Settings", systemImage: "gear")
+                            })
+                        Section(header: Text("Dev Only")){
+                            NavigationLink(
+                                destination: EditingView(file: "", fileName: "")
+                                    .navigationBarHidden(true),
+                                label: {
+                                    Text("Dev")
+                                })
+                        }
+                        Section(header: Text("Favorites")){
+                            
+                        }
+                    }
+                    .listStyle(InsetGroupedListStyle())
+                    .navigationTitle("Home")
+                    .toolbar{
+                        EditButton()
+                    }
                 }
                 ExploreView()
             }
