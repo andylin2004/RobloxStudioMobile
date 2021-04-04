@@ -7,18 +7,6 @@
 
 import SwiftUI
 
-struct ListView: View{
-    var body: some View{
-        SideElementView(content: {
-            List{
-                Text("Pikachu")
-                Text("Raichu")
-                Text("Gorochu")
-            }
-        }, title: "List")
-    }
-}
-
 struct childView: View{
     let children: Array<RbxObject>
     let data: String
@@ -75,11 +63,5 @@ struct ListButton: View{
                 .foregroundColor(Color(UIColor.label))
         }
         .environmentObject(propertyInfo)
-    }
-}
-
-struct SideViews_Previews: PreviewProvider {
-    static var previews: some View {
-        ListView()
     }
 }
