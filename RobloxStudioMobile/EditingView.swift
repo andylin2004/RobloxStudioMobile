@@ -78,14 +78,23 @@ struct EditingView: View {
 }
 
 struct PropertyView: View{
+    
+    var body: some View{
+        List{
+            PropertyRenderer()
+        }
+    }
+}
+
+struct PropertyRenderer: View{
     @EnvironmentObject var properties: PropertyInfoArray
     
     var body: some View{
-        List(properties.properties){property in
-            if property.type != "Array"{
-                PropertyCell(property: property)
-            }else{
+        ForEach(properties.properties){property in
+            if property.type == "Array"{
                 PropertyCellArray(property: property)
+            }else{
+                PropertyCell(property: property)
             }
         }
         .environmentObject(properties)
@@ -145,6 +154,9 @@ struct PropertyCellArray: View{
         .onAppear(){
             newPropertyValue = property.value as! Dictionary
         }
+        .onChange(of: property.name, perform: { value in
+            newPropertyValue = property.value as! Dictionary
+        })
     }
 }
 
