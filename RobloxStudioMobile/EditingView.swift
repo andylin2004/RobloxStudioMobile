@@ -78,23 +78,16 @@ struct EditingView: View {
 }
 
 struct PropertyView: View{
-    
-    var body: some View{
-        List{
-            PropertyRenderer()
-        }
-    }
-}
-
-struct PropertyRenderer: View{
     @EnvironmentObject var properties: PropertyInfoArray
     
     var body: some View{
-        ForEach(properties.properties){property in
-            if property.type == "Array"{
-                PropertyCellArray(property: property)
-            }else{
-                PropertyCell(property: property)
+        List{
+            ForEach(properties.properties){property in
+                if property.type == "Array"{
+                    PropertyCellArray(property: property)
+                }else{
+                    PropertyCell(property: property)
+                }
             }
         }
         .environmentObject(properties)
