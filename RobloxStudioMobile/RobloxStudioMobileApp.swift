@@ -142,10 +142,10 @@ func collectProperty(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -
 //            print(tempType)
             if line == "</"+tempType+">"{
                 waitForChildPropertyEnd = false
-                properties.append(PropertyInfo(id: properties.endIndex, name: tempName, type: tempType, value: childProperty))
+                properties.append(PropertyInfo(id: properties.endIndex, name: tempName, type: "Array", value: childProperty))
                 childProperty = [:]
             }else{
-                childProperty.updateValue(Double(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!])!, forKey: String(line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]))
+                childProperty.updateValue(Double(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!]) ?? 0, forKey: String(line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]))
             }
         }else{
 //            print(line)
@@ -157,7 +157,6 @@ func collectProperty(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -
                 tempType = String(lineParsed.first!)
                 tempName = String(lineParsed[1])
             }else{
-                tempType = "Array"
                 tempName = String(lineParsed.first!)
             }
             

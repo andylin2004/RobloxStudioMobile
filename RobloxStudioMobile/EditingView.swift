@@ -82,7 +82,11 @@ struct PropertyView: View{
     
     var body: some View{
         List(properties.properties){property in
-            PropertyCell(property: property)
+            if property.type != "Array"{
+                PropertyCell(property: property)
+            }else{
+                PropertyCellArray(property: property)
+            }
         }
         .environmentObject(properties)
     }
@@ -96,9 +100,7 @@ struct PropertyCell: View{
     init(property: PropertyInfo){
         self.property = property
         
-        if property.value is String{
-            newPropertyValue = property.value as! String
-        }
+        newPropertyValue = property.value as! String
     }
     
     var body: some View{
@@ -118,6 +120,31 @@ struct PropertyCell: View{
         .onChange(of: property.name, perform: { value in
             newPropertyValue = property.value as! String
         })
+    }
+}
+
+struct PropertyCellArray: View{
+    @State var newPropertyValue: Dictionary = [:]
+    @EnvironmentObject var properties: PropertyInfoArray
+    let property: PropertyInfo
+    
+    init(property: PropertyInfo){
+        self.property = property
+        
+        newPropertyValue = property.value as! Dictionary<String, Double>
+    }
+    var body: some View{
+        DisclosureGroup{
+            ForEach(Array((property.value as! Dictionary<String, Double>).keys), id: \.self){item in
+                Text(((property.value as! Dictionary<String, Double>)[item])!.description)
+            }
+        } label: {
+            Text(property.name)
+        }
+        .environmentObject(properties)
+        .onAppear(){
+            newPropertyValue = property.value as! Dictionary
+        }
     }
 }
 

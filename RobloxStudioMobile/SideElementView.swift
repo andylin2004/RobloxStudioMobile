@@ -45,8 +45,8 @@ struct SideElementView<Content: View>: View {
     
 }
 
-struct SideElementView_Previews: PreviewProvider {
-    static var previews: some View {
-        ListView()
-    }
-}
+//struct SideElementView_Previews: PreviewProvider {
+//    static var previews: some View {
+//        ListView()
+//    }
+//}
