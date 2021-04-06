@@ -87,9 +87,6 @@ struct PropertyView: View{
             }
         }
         .environmentObject(properties)
-        .onChange(of: properties.properties){_ in
-            print(properties.properties)
-        }
     }
 }
 
@@ -130,7 +127,9 @@ struct PropertyCell: View{
                 ForEach(0..<newPropertyValue.count, id: \.self){indice in
                     TextField("", text: $newPropertyValue[indice].value)
                         .onChange(of: newPropertyValue[indice].value){_ in
-                            properties.properties[property.id].value[indice].value = newPropertyValue[indice].value
+                            if properties.properties.count > property.id{
+                                properties.properties[property.id].value[indice].value = newPropertyValue[indice].value
+                            }
                         }
                 }
             }
