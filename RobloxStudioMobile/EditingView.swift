@@ -82,74 +82,66 @@ struct PropertyView: View{
     
     var body: some View{
         List{
-            ForEach(properties.properties){property in
-                if property.type == "Array"{
-                    PropertyCellArray(property: property)
-                }else{
-                    PropertyCell(property: property)
-                }
+            ForEach(properties.properties, id: \.self){property in
+                PropertyCell(property: property)
             }
         }
         .environmentObject(properties)
+        .onChange(of: properties.properties){_ in
+            print(properties.properties)
+        }
     }
 }
 
 struct PropertyCell: View{
-    @State var newPropertyValue: String = ""
+    @State var newPropertyValue: Array<OrderedDict> = []
     @EnvironmentObject var properties: PropertyInfoArray
     let property: PropertyInfo
     
     init(property: PropertyInfo){
         self.property = property
-        
-        newPropertyValue = property.value as! String
     }
     
     var body: some View{
-        HStack{
-            Text(property.name)
-            TextField("", text: $newPropertyValue)
-                .onChange(of: newPropertyValue, perform: { value in
-                    if property.id < properties.properties.count{
-                        properties.properties[property.id].value = newPropertyValue
+        if property.type == "Array"{
+            DisclosureGroup{
+                ForEach(0..<newPropertyValue.count, id: \.self){indice in
+                    HStack{
+                        Text(property.value[indice].key)
+                        TextField("", text: $newPropertyValue[indice].value)
+                            .onChange(of: newPropertyValue[indice].value){_ in
+                                properties.properties[property.id].value[indice].value = newPropertyValue[indice].value
+                            }
                     }
-                })
-        }
-        .environmentObject(properties)
-        .onAppear(){
-            newPropertyValue = property.value as! String
-        }
-        .onChange(of: property.name, perform: { value in
-            newPropertyValue = property.value as! String
-        })
-    }
-}
-
-struct PropertyCellArray: View{
-    @State var newPropertyValue: Dictionary = [:]
-    @EnvironmentObject var properties: PropertyInfoArray
-    let property: PropertyInfo
-    
-    init(property: PropertyInfo){
-        self.property = property
-        
-        newPropertyValue = property.value as! Dictionary<String, Double>
-    }
-    var body: some View{
-        DisclosureGroup{
-            ForEach(Array((property.value as! Dictionary<String, Double>).keys), id: \.self){item in
-                Text(((property.value as! Dictionary<String, Double>)[item])!.description)
+                }
+            } label: {
+                Text(property.name)
             }
-        } label: {
-            Text(property.name)
+            .environmentObject(properties)
+            .onAppear(){
+                self.newPropertyValue = property.value
+            }
+            .onChange(of: property.value){_ in
+                self.newPropertyValue = property.value
+            }
+        }else if property.value.count > 0{
+            HStack{
+                Text(property.name)
+                ForEach(0..<newPropertyValue.count, id: \.self){indice in
+                    TextField("", text: $newPropertyValue[indice].value)
+                        .onChange(of: newPropertyValue[indice].value){_ in
+                            properties.properties[property.id].value[indice].value = newPropertyValue[indice].value
+                        }
+                }
+            }
+            .environmentObject(properties)
+            .onAppear(){
+                self.newPropertyValue = property.value
+            }
+            .onChange(of: property.value){_ in
+                self.newPropertyValue = property.value
+            }
         }
-        .environmentObject(properties)
-        .onAppear(){
-            newPropertyValue = property.value as! Dictionary
-        }
-        .onChange(of: property.name, perform: { value in
-            newPropertyValue = property.value as! Dictionary
-        })
     }
 }
 

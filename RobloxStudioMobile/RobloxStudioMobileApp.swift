@@ -121,7 +121,7 @@ func collectProperty(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -
     var tempType = ""
     var tempValue = ""
     
-    var childProperty: Dictionary<String, Double> = [:]
+    var childProperty: Array<OrderedDict> = []
     
     var waitForCDATAEnd = false
     var waitForChildPropertyEnd = false
@@ -134,7 +134,9 @@ func collectProperty(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -
         if waitForCDATAEnd{
             if line.contains("]]></ProtectedString>"){
                 waitForCDATAEnd = false
-                properties.append(PropertyInfo(id: properties.endIndex, name: tempName, type: tempType, value: tempValue))
+                childProperty.append(OrderedDict(key: tempName, value: tempValue))
+                properties.append(PropertyInfo(id: properties.endIndex, name: tempName, type: tempType, value: childProperty))
+                childProperty = []
             }else{
                 tempValue += data[lineNum]
             }
@@ -143,9 +145,9 @@ func collectProperty(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -
             if line == "</"+tempType+">"{
                 waitForChildPropertyEnd = false
                 properties.append(PropertyInfo(id: properties.endIndex, name: tempName, type: "Array", value: childProperty))
-                childProperty = [:]
+                childProperty = []
             }else{
-                childProperty.updateValue(Double(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!]) ?? 0, forKey: String(line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]))
+                childProperty.append(OrderedDict(key: String(line[line.index(after: line.firstIndex(of: "<")!)..<line.firstIndex(of: ">")!]), value: String(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!])))
             }
         }else{
 //            print(line)
@@ -170,7 +172,9 @@ func collectProperty(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -
                     waitForChildPropertyEnd = true
                 }else{
                     tempName.removeFirst(6)
-                    properties.append(PropertyInfo(id: properties.endIndex, name: String(tempName[tempName.startIndex..<tempName.index(before: tempName.firstIndex(of: ">")!)]), type: tempType, value: String(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!])))
+                    childProperty.append(OrderedDict(key: tempName, value: String(line[line.index(after: line.firstIndex(of: ">")!)..<line.lastIndex(of: "<")!])))
+                    properties.append(PropertyInfo(id: properties.endIndex, name: String(tempName[tempName.startIndex..<tempName.index(before: tempName.firstIndex(of: ">")!)]), type: tempType, value: childProperty))
+                    childProperty = []
                 }
             }
         }
@@ -196,11 +200,16 @@ struct RbxObject{
     let childEnd: Int?
 }
 
-struct PropertyInfo: Identifiable{
+struct PropertyInfo: Equatable, Hashable{
     let id: Int
     let name: String
     let type: String
-    var value: Any
+    var value: Array<OrderedDict>
+}
+
+struct OrderedDict: Equatable, Hashable{
+    let key: String
+    var value: String
 }
 
 class PropertyInfoArray: ObservableObject{
