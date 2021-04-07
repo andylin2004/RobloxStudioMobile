@@ -15,7 +15,6 @@ struct EditingView: View {
     let file: String
     let fileName: String
     let parsedArray: Array<RbxObject>
-    @State var dummy = ""
     
     init(file: String, fileName: String){
         self.file = file
@@ -83,6 +82,9 @@ struct MainView: View{
     var body: some View{
         TextEditor(text: $scriptEditable)
             .onAppear(){
+                scriptEditable = script.file
+            }
+            .onChange(of: script.file){_ in
                 scriptEditable = script.file
             }
             .environmentObject(script)

@@ -135,6 +135,7 @@ func collectProperty(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -
             if line.contains("]]></ProtectedString>"){
                 waitForCDATAEnd = false
                 childProperty.append(OrderedDict(key: tempName, value: tempValue))
+                tempName = String(tempName[tempName.index(after: tempName.firstIndex(of: "\"")!)..<tempName.index(of: "\"><![CDATA")!])
                 properties.append(PropertyInfo(id: properties.endIndex, name: tempName, type: tempType, value: childProperty))
                 childProperty = []
             }else{

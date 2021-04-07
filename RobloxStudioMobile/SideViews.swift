@@ -129,13 +129,15 @@ struct PropertyCell: View{
             .environmentObject(scriptData)
             .onAppear(){
                 self.newPropertyValue = property.value
-                if property.name == "Script"{
+                if property.name == "Source"{
+                    print(property.value[0].value)
                     scriptData.file = property.value[0].value
                 }
             }
             .onChange(of: property.value){_ in
                 self.newPropertyValue = property.value
-                if property.name == "Script"{
+                if property.name == "Source"{
+                    print(property.value[0].value)
                     scriptData.file = property.value[0].value
                 }
             }
