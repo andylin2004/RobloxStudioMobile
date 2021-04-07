@@ -10,6 +10,7 @@ import SwiftUI
 struct EditingView: View {
     @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject var loading: LoadingFile
+    @StateObject var script = ScriptFile()
     @StateObject var propertyList = PropertyInfoArray()
     let file: String
     let fileName: String
@@ -31,13 +32,10 @@ struct EditingView: View {
                     mainListView(parsedArray: parsedArray, file: file)
                         .frame(width: geometry.size.width*0.25)
                     Divider()
-                    VStack{
-                        Text("Enviromental Placeholder")
-                    }.frame(minWidth: 0, maxWidth: .infinity)
+                    MainView()
+                        .frame(minWidth: 0, maxWidth: .infinity)
                     Divider()
-                    VStack{
-                        PropertyView()
-                    }
+                    PropertyView()
                         .frame(width: geometry.size.width*0.25)
                 }
             }.navigationBarTitle(fileName, displayMode: .inline)
@@ -71,9 +69,23 @@ struct EditingView: View {
         }.navigationViewStyle(StackNavigationViewStyle())
         .environmentObject(loading)
         .environmentObject(propertyList)
+        .environmentObject(script)
         .onAppear{
             loading.loading = false
         }
+    }
+}
+
+struct MainView: View{
+    @EnvironmentObject var script: ScriptFile
+    @State var scriptEditable = ""
+    
+    var body: some View{
+        TextEditor(text: $scriptEditable)
+            .onAppear(){
+                scriptEditable = script.file
+            }
+            .environmentObject(script)
     }
 }
 

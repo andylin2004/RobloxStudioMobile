@@ -68,6 +68,7 @@ struct ListButton: View{
 
 struct PropertyView: View{
     @EnvironmentObject var properties: PropertyInfoArray
+    @EnvironmentObject var script: ScriptFile
     
     var body: some View{
         List{
@@ -76,12 +77,14 @@ struct PropertyView: View{
             }
         }
         .environmentObject(properties)
+        .environmentObject(script)
     }
 }
 
 struct PropertyCell: View{
     @State var newPropertyValue: Array<OrderedDict> = []
     @EnvironmentObject var properties: PropertyInfoArray
+    @EnvironmentObject var scriptData: ScriptFile
     let property: PropertyInfo
     
     init(property: PropertyInfo){
@@ -123,11 +126,18 @@ struct PropertyCell: View{
                 }
             }
             .environmentObject(properties)
+            .environmentObject(scriptData)
             .onAppear(){
                 self.newPropertyValue = property.value
+                if property.name == "Script"{
+                    scriptData.file = property.value[0].value
+                }
             }
             .onChange(of: property.value){_ in
                 self.newPropertyValue = property.value
+                if property.name == "Script"{
+                    scriptData.file = property.value[0].value
+                }
             }
         }
     }

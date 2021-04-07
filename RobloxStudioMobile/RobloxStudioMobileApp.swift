@@ -220,6 +220,10 @@ class LoadingFile: ObservableObject{
     @Published var loading = false
 }
 
+class ScriptFile: ObservableObject{
+    @Published var file = ""
+}
+
 extension StringProtocol {
     func index<S: StringProtocol>(of string: S, options: String.CompareOptions = []) -> Index? {
         range(of: string, options: options)?.lowerBound
