@@ -21,7 +21,6 @@ struct EditingView: View {
         self.fileName = fileName
         
         self.parsedArray = parseFile(data: file)
-        
     }
     
     var body: some View {
@@ -29,12 +28,16 @@ struct EditingView: View {
             GeometryReader{ geometry in
                 HStack{
                     mainListView(parsedArray: parsedArray, file: file)
+                        .padding(.trailing, -7)
                         .frame(width: geometry.size.width*0.25)
                     Divider()
-                    MainView()
+                    mainView()
+                        .padding(.leading, -7)
+                        .padding(.trailing, -7)
                         .frame(minWidth: 0, maxWidth: .infinity)
                     Divider()
                     PropertyView()
+                        .padding(.leading, -7)
                         .frame(width: geometry.size.width*0.25)
                 }
             }.navigationBarTitle(fileName, displayMode: .inline)
@@ -75,7 +78,26 @@ struct EditingView: View {
     }
 }
 
-struct MainView: View{
+struct mainView: View{
+    var body: some View{
+        TabView{
+            enviromentView()
+                .tabItem {
+                    Text("Enviroment")
+                    Image(systemName: "square.stack.3d.up.fill")
+                }
+                .tag(1)
+            scriptView()
+                .tabItem {
+                    Text("Script")
+                    Image(systemName: "doc.text.fill")
+                }
+                .tag(2)
+        }
+    }
+}
+
+struct scriptView: View{
     @EnvironmentObject var script: ScriptFile
     @State var scriptEditable = ""
     
@@ -91,8 +113,15 @@ struct MainView: View{
     }
 }
 
+struct enviromentView: View{
+    var body: some View{
+        Text("Enviroment Placeholder")
+    }
+}
+
 struct EditingView_Previews: PreviewProvider {
     static var previews: some View {
-        EditingView(file: "", fileName: "")
+//        EditingView(file: "", fileName: "")
+        mainView()
     }
 }
