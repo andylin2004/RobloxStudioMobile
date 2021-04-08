@@ -15,6 +15,8 @@ struct EditingView: View {
     let file: String
     let fileName: String
     let parsedArray: Array<RbxObject>
+    @State var leftOffset: Bool = false
+    @State var rightOffset: Bool = false
     
     init(file: String, fileName: String){
         self.file = file
@@ -30,15 +32,25 @@ struct EditingView: View {
                     mainListView(parsedArray: parsedArray, file: file)
                         .padding(.trailing, -7)
                         .frame(width: geometry.size.width*0.25)
+                        .animation(.default)
+                        .offset(x: leftOffset ? geometry.size.width * -0.25 - 7 : 0)
                     Divider()
+                        .animation(.default)
+                        .offset(x: leftOffset ? geometry.size.width * -0.25 - 7 : 0)
                     mainView()
                         .padding(.leading, -7)
                         .padding(.trailing, -7)
-                        .frame(minWidth: 0, maxWidth: .infinity)
+                        .frame(width: geometry.size.width * 0.5 + (leftOffset ? geometry.size.width * 0.25 : 0) + (rightOffset ? geometry.size.width * 0.25 : 0))
+                        .offset(x: leftOffset ? geometry.size.width * -0.25 - 7 : 0)
+                        .animation(.default)
                     Divider()
+                        .animation(.default)
+                        .offset(x: (rightOffset ? geometry.size.width * 0.25 - 7 : 0) + (leftOffset ? geometry.size.width * -0.25 : 0))
                     PropertyView()
                         .padding(.leading, -7)
                         .frame(width: geometry.size.width*0.25)
+                        .animation(.default)
+                        .offset(x: (rightOffset ? geometry.size.width * 0.25 - 7 : 0) + (leftOffset ? geometry.size.width * -0.25 : 0))
                 }
             }.navigationBarTitle(fileName, displayMode: .inline)
             .toolbar{
@@ -46,7 +58,9 @@ struct EditingView: View {
                     Button(action:{presentationMode.wrappedValue.dismiss()}, label:{
                         Text("Done")
                     }).buttonStyle(PlainButtonStyle())
-                    Button(action: {}, label: {
+                    Button(action: {
+                        leftOffset.toggle()
+                    }, label: {
                         Image(systemName: "sidebar.left")
                     })
                     Button(action: {}, label: {
@@ -63,7 +77,9 @@ struct EditingView: View {
                     Button(action: /*@START_MENU_TOKEN@*/{}/*@END_MENU_TOKEN@*/, label: {
                         Image(systemName: "info.circle")
                     })
-                    Button(action: /*@START_MENU_TOKEN@*/{}/*@END_MENU_TOKEN@*/, label: {
+                    Button(action: {
+                        rightOffset.toggle()
+                    }, label: {
                         Image(systemName: "sidebar.right")
                     })
                 }
