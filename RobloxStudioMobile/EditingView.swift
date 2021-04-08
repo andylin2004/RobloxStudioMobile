@@ -96,20 +96,21 @@ struct EditingView: View {
 
 struct mainView: View{
     var body: some View{
-        TabView{
-            enviromentView()
-                .tabItem {
-                    Text("Enviroment")
-                    Image(systemName: "square.stack.3d.up.fill")
-                }
-                .tag(1)
-            scriptView()
-                .tabItem {
-                    Text("Script")
-                    Image(systemName: "doc.text.fill")
-                }
-                .tag(2)
-        }
+//        TabView{
+//            enviromentView()
+//                .tabItem {
+//                    Text("Enviroment")
+//                    Image(systemName: "square.stack.3d.up.fill")
+//                }
+//                .tag(1)
+//            scriptView()
+//                .tabItem {
+//                    Text("Script")
+//                    Image(systemName: "doc.text.fill")
+//                }
+//                .tag(2)
+//        }
+        scriptView()
     }
 }
 
