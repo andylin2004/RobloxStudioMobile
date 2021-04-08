@@ -40,7 +40,6 @@ struct EditingView: View {
                     mainView()
                         .padding(.leading, -7)
                         .padding(.trailing, -7)
-                        .frame(width: geometry.size.width * 0.5 + (leftOffset ? geometry.size.width * 0.25 : 0) + (rightOffset ? geometry.size.width * 0.25 : 0))
                         .offset(x: leftOffset ? geometry.size.width * -0.25 - 7 : 0)
                         .animation(.default)
                     Divider()
