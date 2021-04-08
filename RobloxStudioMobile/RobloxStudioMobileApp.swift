@@ -139,7 +139,7 @@ func collectProperty(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -
                 properties.append(PropertyInfo(id: properties.endIndex, name: tempName, type: tempType, value: childProperty))
                 childProperty = []
             }else{
-                tempValue += "\n" + data[lineNum]
+                tempValue += "\n" + String(data[lineNum]).replacingOccurrences(of: "\\", with: "\\\\")
             }
         }else if waitForChildPropertyEnd{
 //            print(tempType)
