@@ -166,7 +166,8 @@ func collectProperty(data: Array<Substring>, startAtLine: Int, endAtLine: Int) -
             if data[lineNum].contains("<![CDATA["){
                 waitForCDATAEnd = true
                 tempValue = String(data[lineNum]).replacingOccurrences(of: "/t", with: "")
-                tempValue.removeFirst(40)
+                tempValue = String(tempValue[tempValue.index(of: "<![CDATA[")!..<tempValue.endIndex])
+                tempValue.removeFirst(9)
             }else{
                 line = String(data[lineNum])
                 if (line.lastIndex(of: "<")! < line.firstIndex(of: ">")!){
