@@ -37,20 +37,17 @@ struct EditingView: View {
                     Divider()
                         .animation(.default)
                         .offset(x: leftOffset ? geometry.size.width * -0.25 - 7 : 0)
-                    mainView()
-                        .frame(width: geometry.size.width * 0.4825 + (rightOffset ? geometry.size.width * 0.25 + 7 : 0) + (leftOffset ? geometry.size.width * 0.25 + 7 : 0))
-                        .padding(.leading, -7)
-                        .padding(.trailing, -7)
-                        .offset(x: leftOffset ? geometry.size.width * -0.25 - 7 : 0)
+                    mainView(additional: (leftOffset ? geometry.size.width * 0.25 + 7 : 0) + (rightOffset ? geometry.size.width * 0.25 + 9: 0))
+                        .offset(x: (leftOffset ? geometry.size.width * -0.25 - 7 : 0))
                         .animation(.default)
                     Divider()
                         .animation(.default)
-                        .offset(x: (rightOffset ? geometry.size.width * 0.25 - 7 : 0) + (leftOffset ? geometry.size.width * -0.25 - 7 : 0))
+                        .offset(x: (rightOffset ? geometry.size.width * 0.25 + 7 : 0))
                     PropertyView()
                         .padding(.leading, -7)
                         .frame(width: geometry.size.width*0.25)
                         .animation(.default)
-                        .offset(x: (rightOffset ? geometry.size.width * 0.25 - 7 : 0) + (leftOffset ? geometry.size.width * -0.25 - 7 : 0))
+                        .offset(x: (rightOffset ? geometry.size.width * 0.25 + 7 : 0))
                 }
             }.navigationBarTitle(fileName, displayMode: .inline)
             .toolbar{
@@ -95,22 +92,17 @@ struct EditingView: View {
 }
 
 struct mainView: View{
+    let additional: CGFloat
+    
+    init(additional: CGFloat){
+        self.additional = additional
+    }
+    
     var body: some View{
-//        TabView{
-//            enviromentView()
-//                .tabItem {
-//                    Text("Enviroment")
-//                    Image(systemName: "square.stack.3d.up.fill")
-//                }
-//                .tag(1)
-//            scriptView()
-//                .tabItem {
-//                    Text("Script")
-//                    Image(systemName: "doc.text.fill")
-//                }
-//                .tag(2)
-//        }
-        scriptView()
+        GeometryReader{ thisGeometry in
+            scriptView()
+                .frame(width: thisGeometry.size.width + 7 + additional)
+        }
     }
 }
 
@@ -139,6 +131,6 @@ struct enviromentView: View{
 struct EditingView_Previews: PreviewProvider {
     static var previews: some View {
 //        EditingView(file: "", fileName: "")
-        mainView()
+        mainView(additional: 0)
     }
 }
