@@ -9,16 +9,17 @@ import SwiftUI
 import Drawer
 
 struct EditingView: View {
-    @Environment(\.presentationMode) var presentationMode
-    @Environment(\.horizontalSizeClass) var sizeClass
-    @EnvironmentObject var loading: LoadingFile
-    @StateObject var script = ScriptFile()
-    @StateObject var propertyList = PropertyInfoArray()
+    @Environment(\.presentationMode) private var presentationMode
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    @EnvironmentObject private var loading: LoadingFile
+    @StateObject private var script = ScriptFile()
+    @StateObject private var propertyList = PropertyInfoArray()
     let file: String
     let fileName: String
     let parsedArray: Array<RbxObject>
-    @State var leftOffset: Bool = false
-    @State var rightOffset: Bool = false
+    @State private var leftOffset: Bool = false
+    @State private var rightOffset: Bool = false
+    @State private var controlButton = 0
     
     init(file: String, fileName: String){
         self.file = file
@@ -103,9 +104,19 @@ struct EditingView: View {
                                 .shadow(radius: 100)
                             
                             VStack{
-                                Spacer().frame(height: 10)
-                                mainListView(parsedArray: parsedArray, file: file)
-                                
+                                Spacer().frame(height: 12)
+                                Picker(selection: $controlButton, label: Text("")){
+                                    Text("Explorer").tag(0)
+                                    Text("Properties").tag(1)
+                                }
+                                .pickerStyle(SegmentedPickerStyle())
+
+                                switch(controlButton){
+                                    case 0:
+                                        mainListView(parsedArray: parsedArray, file: file)
+                                    default:
+                                        PropertyView()
+                                }
                             }
                             
                             VStack(alignment: .center) {
@@ -149,6 +160,11 @@ struct EditingView: View {
             .environmentObject(script)
             .onAppear{
                 loading.loading = false
+            }
+            .onChange(of: propertyList.properties){_ in
+                if controlButton == 0{
+                    controlButton = 1
+                }
             }
         }
     }
