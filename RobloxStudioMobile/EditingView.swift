@@ -6,9 +6,11 @@
 //
 
 import SwiftUI
+import Drawer
 
 struct EditingView: View {
     @Environment(\.presentationMode) var presentationMode
+    @Environment(\.horizontalSizeClass) var sizeClass
     @EnvironmentObject var loading: LoadingFile
     @StateObject var script = ScriptFile()
     @StateObject var propertyList = PropertyInfoArray()
@@ -26,67 +28,128 @@ struct EditingView: View {
     }
     
     var body: some View {
-        NavigationView{
-            GeometryReader{ geometry in
-                HStack{
-                    mainListView(parsedArray: parsedArray, file: file)
-                        .padding(.trailing, -7)
-                        .frame(width: geometry.size.width*0.25)
-                        .animation(.default)
-                        .offset(x: leftOffset ? geometry.size.width * -0.25 - 7 : 0)
-                    Divider()
-                        .animation(.default)
-                        .offset(x: leftOffset ? geometry.size.width * -0.25 - 7 : 0)
-                    mainView(additional: (leftOffset ? geometry.size.width * 0.25 + 7 : 0) + (rightOffset ? geometry.size.width * 0.25 + 9: 0))
-                        .offset(x: (leftOffset ? geometry.size.width * -0.25 - 7 : 0))
-                        .animation(.default)
-                    Divider()
-                        .animation(.default)
-                        .offset(x: (rightOffset ? geometry.size.width * 0.25 + 7 : 0))
-                    PropertyView()
-                        .padding(.leading, -7)
-                        .frame(width: geometry.size.width*0.25)
-                        .animation(.default)
-                        .offset(x: (rightOffset ? geometry.size.width * 0.25 + 7 : 0))
+        if sizeClass == .regular{
+            NavigationView{
+                GeometryReader{ geometry in
+                    HStack{
+                        mainListView(parsedArray: parsedArray, file: file)
+                            .padding(.trailing, -7)
+                            .frame(width: geometry.size.width*0.25)
+                            .animation(.default)
+                            .offset(x: leftOffset ? geometry.size.width * -0.25 - 7 : 0)
+                        Divider()
+                            .animation(.default)
+                            .offset(x: leftOffset ? geometry.size.width * -0.25 - 7 : 0)
+                        mainView(additional: (leftOffset ? geometry.size.width * 0.25 + 7 : 0) + (rightOffset ? geometry.size.width * 0.25 + 9: 0))
+                            .offset(x: (leftOffset ? geometry.size.width * -0.25 - 7 : 0))
+                            .animation(.default)
+                        Divider()
+                            .animation(.default)
+                            .offset(x: (rightOffset ? geometry.size.width * 0.25 + 7 : 0))
+                        PropertyView()
+                            .padding(.leading, -7)
+                            .frame(width: geometry.size.width*0.25)
+                            .animation(.default)
+                            .offset(x: (rightOffset ? geometry.size.width * 0.25 + 7 : 0))
+                    }
+                }.navigationBarTitle(fileName, displayMode: .inline)
+                .toolbar{
+                    ToolbarItemGroup(placement: .navigationBarLeading){
+                        Button(action:{presentationMode.wrappedValue.dismiss()}, label:{
+                            Text("Done")
+                        }).buttonStyle(PlainButtonStyle())
+                        Button(action: {
+                            leftOffset.toggle()
+                        }, label: {
+                            Image(systemName: "sidebar.left")
+                        })
+                        Button(action: {}, label: {
+                            Image(systemName: "arrow.uturn.backward.circle")
+                        })
+                        Button(action: {}, label: {
+                            Image(systemName: "arrow.uturn.forward.circle")
+                        })
+                    }
+                    ToolbarItemGroup(placement: .navigationBarTrailing){
+                        Button(action: {}, label: {
+                            Image(systemName: "square.and.arrow.up")
+                        })
+                        Button(action: /*@START_MENU_TOKEN@*/{}/*@END_MENU_TOKEN@*/, label: {
+                            Image(systemName: "info.circle")
+                        })
+                        Button(action: {
+                            rightOffset.toggle()
+                        }, label: {
+                            Image(systemName: "sidebar.right")
+                        })
+                    }
                 }
-            }.navigationBarTitle(fileName, displayMode: .inline)
-            .toolbar{
-                ToolbarItemGroup(placement: .navigationBarLeading){
-                    Button(action:{presentationMode.wrappedValue.dismiss()}, label:{
-                        Text("Done")
-                    }).buttonStyle(PlainButtonStyle())
-                    Button(action: {
-                        leftOffset.toggle()
-                    }, label: {
-                        Image(systemName: "sidebar.left")
-                    })
-                    Button(action: {}, label: {
-                        Image(systemName: "arrow.uturn.backward.circle")
-                    })
-                    Button(action: {}, label: {
-                        Image(systemName: "arrow.uturn.forward.circle")
-                    })
+            }.navigationViewStyle(StackNavigationViewStyle())
+            .environmentObject(loading)
+            .environmentObject(propertyList)
+            .environmentObject(script)
+            .onAppear{
+                loading.loading = false
+            }
+        }else{
+            NavigationView{
+                ZStack{
+                    mainView(additional: 0)
+                    
+                    Drawer{
+                        ZStack{
+                            RoundedRectangle(cornerRadius: 12)
+                                .foregroundColor(.white)
+                                .shadow(radius: 100)
+                            
+                            VStack{
+                                Spacer().frame(height: 10)
+                                mainListView(parsedArray: parsedArray, file: file)
+                                
+                            }
+                            
+                            VStack(alignment: .center) {
+                                Spacer().frame(height: 4.0)
+                                RoundedRectangle(cornerRadius: 3.0)
+                                    .foregroundColor(.gray)
+                                    .frame(width: 30.0, height: 6.0)
+                                Spacer()
+                            }
+                        }
+                    }
+                    .rest(at: .constant([100, 340]))
                 }
-                ToolbarItemGroup(placement: .navigationBarTrailing){
-                    Button(action: {}, label: {
-                        Image(systemName: "square.and.arrow.up")
-                    })
-                    Button(action: /*@START_MENU_TOKEN@*/{}/*@END_MENU_TOKEN@*/, label: {
-                        Image(systemName: "info.circle")
-                    })
-                    Button(action: {
-                        rightOffset.toggle()
-                    }, label: {
-                        Image(systemName: "sidebar.right")
-                    })
+                .edgesIgnoringSafeArea(.bottom)
+                .navigationBarTitle(fileName, displayMode: .inline)
+                .toolbar{
+                    ToolbarItemGroup(placement: .navigationBarLeading){
+                        Button(action:{presentationMode.wrappedValue.dismiss()}, label:{
+                            Text("Done")
+                        }).buttonStyle(PlainButtonStyle())
+                        Button(action: {}, label: {
+                            Image(systemName: "arrow.uturn.backward.circle")
+                        })
+                        Button(action: {}, label: {
+                            Image(systemName: "arrow.uturn.forward.circle")
+                        })
+                    }
+                    ToolbarItemGroup(placement: .navigationBarTrailing){
+                        Button(action: {}, label: {
+                            Image(systemName: "square.and.arrow.up")
+                        })
+                        Button(action: /*@START_MENU_TOKEN@*/{}/*@END_MENU_TOKEN@*/, label: {
+                            Image(systemName: "info.circle")
+                        })
+                    }
                 }
             }
-        }.navigationViewStyle(StackNavigationViewStyle())
-        .environmentObject(loading)
-        .environmentObject(propertyList)
-        .environmentObject(script)
-        .onAppear{
-            loading.loading = false
+            .navigationViewStyle(StackNavigationViewStyle())
+            .environmentObject(loading)
+            .environmentObject(propertyList)
+            .environmentObject(script)
+            .onAppear{
+                loading.loading = false
+            }
         }
     }
 }
@@ -130,7 +193,6 @@ struct enviromentView: View{
 
 struct EditingView_Previews: PreviewProvider {
     static var previews: some View {
-//        EditingView(file: "", fileName: "")
         mainView(additional: 0)
     }
 }
