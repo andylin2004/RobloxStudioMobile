@@ -194,6 +194,7 @@ struct RbxObject{
         self.childStart = childStart
         self.childEnd = childEnd
     }
+    let id = UUID()
     let name: String
     let className: String
     let propertyStart: Int
@@ -216,6 +217,7 @@ struct OrderedDict: Equatable, Hashable{
 
 class PropertyInfoArray: ObservableObject{
     @Published var properties = Array<PropertyInfo>()
+    @Published var id: UUID = UUID()
 }
 
 class LoadingFile: ObservableObject{

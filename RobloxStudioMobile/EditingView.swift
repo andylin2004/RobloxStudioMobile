@@ -100,7 +100,7 @@ struct EditingView: View {
                     Drawer{
                         ZStack{
                             RoundedRectangle(cornerRadius: 12)
-                                .foregroundColor(.white)
+                                .foregroundColor(Color(UIColor.systemBackground))
                                 .shadow(radius: 100)
                             
                             VStack{
@@ -161,10 +161,8 @@ struct EditingView: View {
             .onAppear{
                 loading.loading = false
             }
-            .onChange(of: propertyList.properties){_ in
-                if controlButton == 0{
-                    controlButton = 1
-                }
+            .onChange(of: propertyList.id){_ in
+                controlButton = 1
             }
         }
     }

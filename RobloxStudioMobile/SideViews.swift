@@ -58,6 +58,7 @@ struct ListButton: View{
     var body: some View {
         Button(action:{
             propertyInfo.properties = collectProperty(data: data.split(whereSeparator: \.isNewline), startAtLine: child.propertyStart+1, endAtLine: child.propertyEnd)
+            propertyInfo.id = child.id
         }){
             Text(child.name)
                 .foregroundColor(Color(UIColor.label))
