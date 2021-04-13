@@ -107,7 +107,7 @@ struct EditingView: View {
                                 Spacer().frame(height: 12)
                                 Picker(selection: $controlButton, label: Text("")){
                                     Text("Explorer").tag(0)
-                                    Text("Properties").tag(1)
+                                    Text("Properties \(propertyList.name == "" ? "" : " - \(propertyList.name)")").tag(1)
                                 }
                                 .pickerStyle(SegmentedPickerStyle())
 

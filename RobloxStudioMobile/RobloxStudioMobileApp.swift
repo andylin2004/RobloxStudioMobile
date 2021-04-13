@@ -218,6 +218,7 @@ struct OrderedDict: Equatable, Hashable{
 class PropertyInfoArray: ObservableObject{
     @Published var properties = Array<PropertyInfo>()
     @Published var id: UUID = UUID()
+    @Published var name = ""
 }
 
 class LoadingFile: ObservableObject{

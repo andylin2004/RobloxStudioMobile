@@ -59,6 +59,7 @@ struct ListButton: View{
         Button(action:{
             propertyInfo.properties = collectProperty(data: data.split(whereSeparator: \.isNewline), startAtLine: child.propertyStart+1, endAtLine: child.propertyEnd)
             propertyInfo.id = child.id
+            propertyInfo.name = child.name
         }){
             Text(child.name)
                 .foregroundColor(Color(UIColor.label))
@@ -70,15 +71,29 @@ struct ListButton: View{
 struct PropertyView: View{
     @EnvironmentObject var properties: PropertyInfoArray
     @EnvironmentObject var script: ScriptFile
+    @Environment(\.horizontalSizeClass) private var sizeClass
     
     var body: some View{
-        List{
-            ForEach(properties.properties, id: \.self){property in
-                PropertyCell(property: property)
+        if properties.properties.count == 0{
+            VStack{
+                Spacer()
+                Text("No Element Selected")
+                    .font(.title)
+                Spacer()
             }
+        }else{
+            NavigationView{
+                List{
+                    ForEach(properties.properties, id: \.self){property in
+                        PropertyCell(property: property)
+                    }
+                }
+                .navigationBarTitle("Properties - \(properties.name)", displayMode: .inline)
+                .navigationBarHidden(sizeClass == .compact)
+            }
+            .environmentObject(properties)
+            .environmentObject(script)
         }
-        .environmentObject(properties)
-        .environmentObject(script)
     }
 }
 
