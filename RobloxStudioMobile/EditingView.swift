@@ -126,7 +126,7 @@ struct EditingView: View {
                                     .frame(width: 30.0, height: 6.0)
                                 Spacer()
                             }
-                        }
+                        }.frame(height: 413)
                     }
                     .rest(at: .constant([100, 340]))
                 }
