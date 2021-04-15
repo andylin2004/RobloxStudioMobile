@@ -58,7 +58,7 @@ struct EditingView: View {
                     ToolbarItemGroup(placement: .navigationBarLeading){
                         Button(action:{presentationMode.wrappedValue.dismiss()}, label:{
                             Text("Done")
-                        }).buttonStyle(PlainButtonStyle())
+                        }).buttonStyle(DefaultButtonStyle())
                         Button(action: {
                             leftOffset.toggle()
                         }, label: {
