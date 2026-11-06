@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     # Explicitly targeting macos-14 uses Apple Silicon runners, which spin up faster than generic tags
-    runs-on: macos-13
+    runs-on: macos-latest
 
     steps:
     - name: Checkout Repository
