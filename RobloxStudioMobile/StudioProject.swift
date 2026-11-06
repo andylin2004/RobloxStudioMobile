@@ -124,9 +124,12 @@ struct StudioViewport: UIViewRepresentable {
 
     func makeUIView(context: Context) -> SCNView {
         let view = SCNView()
-        view.backgroundColor = UIColor(red: 0.30, green: 0.36, blue: 0.45, alpha: 1)
+        view.backgroundColor = UIColor(red: 0.43, green: 0.62, blue: 0.78, alpha: 1)
+        view.isPlaying = true
+        view.rendersContinuously = true
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = true
+        view.antialiasingMode = .multisampling4X
         view.scene = makeScene()
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.selectNode(_:)))
         view.addGestureRecognizer(tap)
@@ -157,17 +160,40 @@ struct StudioViewport: UIViewRepresentable {
 
     private func makeScene() -> SCNScene {
         let scene = SCNScene()
+        scene.background.contents = UIColor(red: 0.43, green: 0.62, blue: 0.78, alpha: 1)
+
         let cameraNode = SCNNode()
-        cameraNode.camera = SCNCamera()
-        cameraNode.position = SCNVector3(30, 28, 34)
+        let camera = SCNCamera()
+        camera.zNear = 0.1
+        camera.zFar = 10000
+        camera.fieldOfView = 55
+        cameraNode.camera = camera
+        cameraNode.position = SCNVector3(38, 32, 42)
         cameraNode.look(at: SCNVector3(0, 0, 0))
         scene.rootNode.addChildNode(cameraNode)
 
-        let floor = SCNFloor()
-        floor.reflectivity = 0
+        let ambient = SCNNode()
+        let ambientLight = SCNLight()
+        ambientLight.type = .ambient
+        ambientLight.intensity = 650
+        ambientLight.color = UIColor(white: 0.85, alpha: 1)
+        ambient.light = ambientLight
+        scene.rootNode.addChildNode(ambient)
+
+        let sun = SCNNode()
+        let sunLight = SCNLight()
+        sunLight.type = .directional
+        sunLight.intensity = 900
+        sunLight.eulerAngles = SCNVector3(-Float.pi / 3, Float.pi / 4, 0)
+        sun.light = sunLight
+        scene.rootNode.addChildNode(sun)
+
+        let floor = SCNPlane(width: 1200, height: 1200)
+        floor.firstMaterial?.diffuse.contents = UIColor(red: 0.34, green: 0.39, blue: 0.48, alpha: 1)
+        floor.firstMaterial?.isDoubleSided = true
         let floorNode = SCNNode(geometry: floor)
-        floorNode.position = SCNVector3(0, -2.1, 0)
-        floorNode.geometry?.firstMaterial?.diffuse.contents = UIColor(red: 0.34, green: 0.39, blue: 0.48, alpha: 1)
+        floorNode.eulerAngles.x = -.pi / 2
+        floorNode.position = SCNVector3(0, -2.15, 0)
         scene.rootNode.addChildNode(floorNode)
 
         for item in project.nodes where item.className == "Part" {
