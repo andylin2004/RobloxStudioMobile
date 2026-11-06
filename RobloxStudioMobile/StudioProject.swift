@@ -34,7 +34,7 @@ final class StudioProject: ObservableObject {
         switch template {
         case "Obby":
             nodes = [
-                StudioNode(name: "Baseplate", className: "Part", x: 0, y:: -1, width: 120, height: 2, depth: 120),
+                StudioNode(name: "Baseplate", className: "Part", x: 0, y: -1, width: 120, height: 2, depth: 120),
                 StudioNode(name: "StartPlatform", className: "Part", x: 0, y: 2, width: 14, height: 2, depth: 14),
                 StudioNode(name: "Jump1", className: "Part", x: 0, y: 4, z: -18, width: 8, height: 2, depth: 8),
                 StudioNode(name: "Jump2", className: "Part", x: 10, y: 6, z: -32, width: 8, height: 2, depth: 8),
