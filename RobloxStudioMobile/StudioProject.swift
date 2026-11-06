@@ -114,7 +114,7 @@ final class StudioProject: ObservableObject, Identifiable {
                 let ref = "RBXOBJ\(serviceIndex)_\(index)"
                 xml += "<Item class=\"\(esc(node.className))\" referent=\"\(ref)\"><Properties><string name=\"Name\">\(esc(node.name))</string>"
                 if node.className == "Part" {
-                    let shapeToken = node.shape == "Sphere" ? 1 : (node.shape == "Cylinder" ? 2 : 0)
+                    let shapeToken = node.shape == "Sphere" ? 0 : (node.shape == "Cylinder" ? 2 : 1)
                     xml += "<bool name=\"Anchored\">\(node.anchored ? "true" : "false")</bool>"
                     xml += "<bool name=\"CanCollide\">\(node.canCollide ? "true" : "false")</bool>"
                     xml += "<float name=\"Transparency\">\(number(node.transparency))</float>"
