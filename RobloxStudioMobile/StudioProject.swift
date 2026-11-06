@@ -7,6 +7,7 @@ struct StudioNode: Identifiable, Codable, Equatable {
     var id: UUID = UUID()
     var name: String
     var className: String
+    var shape: String = "Block"
     var x: Double = 0
     var y: Double = 3
     var z: Double = 0
@@ -14,6 +15,8 @@ struct StudioNode: Identifiable, Codable, Equatable {
     var height: Double = 1
     var depth: Double = 4
     var anchored: Bool = true
+    var canCollide: Bool = true
+    var transparency: Double = 0
     var source: String = ""
     var service: String = "Workspace"
 }
@@ -24,12 +27,14 @@ final class StudioProject: ObservableObject {
     @Published var selectedID: UUID?
     @Published var activeTab = "Home"
 
+    let services = ["Workspace", "Players", "Lighting", "ReplicatedStorage", "ServerScriptService", "ServerStorage", "StarterGui", "StarterPack", "StarterPlayer", "SoundService", "Teams"]
+
     init(name: String = "Untitled", template: String = "Baseplate") {
         self.name = name
         switch template {
         case "Obby":
             nodes = [
-                StudioNode(name: "Baseplate", className: "Part", x: 0, y: -1, width: 120, height: 2, depth: 120),
+                StudioNode(name: "Baseplate", className: "Part", x: 0, y:: -1, width: 120, height: 2, depth: 120),
                 StudioNode(name: "StartPlatform", className: "Part", x: 0, y: 2, width: 14, height: 2, depth: 14),
                 StudioNode(name: "Jump1", className: "Part", x: 0, y: 4, z: -18, width: 8, height: 2, depth: 8),
                 StudioNode(name: "Jump2", className: "Part", x: 10, y: 6, z: -32, width: 8, height: 2, depth: 8),
@@ -42,16 +47,36 @@ final class StudioProject: ObservableObject {
         }
     }
 
-    func addPart() {
-        let n = StudioNode(name: "Part", className: "Part", x: Double(nodes.count * 3), y: 4)
-        nodes.append(n)
-        selectedID = n.id
+    var selectedNode: StudioNode? { nodes.first { $0.id == selectedID } }
+
+    func addPart(shape: String = "Block") {
+        let label = shape == "Block" ? "Part" : shape
+        let node = StudioNode(name: label, className: "Part", shape: shape, x: Double(nodes.filter { $0.className == "Part" }.count * 3), y: 4)
+        nodes.append(node)
+        selectedID = node.id
     }
 
-    func addScript() {
-        let n = StudioNode(name: "Script", className: "Script", source: "-- Your Roblox Lua code goes here\nprint(\"Hello from RobloxStudioMobile!\")", service: "ServerScriptService")
-        nodes.append(n)
-        selectedID = n.id
+    func addScript(kind: String = "Script") {
+        let service = kind == "LocalScript" ? "StarterPlayer" : "ServerScriptService"
+        let starter = kind == "ModuleScript" ? "return {}" : "print(\"Hello from RobloxStudioMobile!\")"
+        let node = StudioNode(name: kind, className: kind, source: "-- Edit this Luau source\n" + starter, service: service)
+        nodes.append(node)
+        selectedID = node.id
+    }
+
+    func duplicateSelected() {
+        guard var copy = selectedNode else { return }
+        copy.id = UUID()
+        copy.name += " Copy"
+        copy.x += 3
+        nodes.append(copy)
+        selectedID = copy.id
+    }
+
+    func deleteSelected() {
+        guard let id = selectedID else { return }
+        nodes.removeAll { $0.id == id }
+        selectedID = nil
     }
 
     func updateSelected(_ change: (inout StudioNode) -> Void) {
@@ -60,25 +85,30 @@ final class StudioProject: ObservableObject {
     }
 
     func exportXML() -> String {
-        func esc(_ s: String) -> String {
-            s.replacingOccurrences(of: "&", with: "&amp;")
-             .replacingOccurrences(of: "<", with: "&lt;")
-             .replacingOccurrences(of: ">", with: "&gt;")
+        func esc(_ value: String) -> String {
+            value.replacingOccurrences(of: "&", with: "&amp;")
+                .replacingOccurrences(of: "<", with: "&lt;")
+                .replacingOccurrences(of: ">", with: "&gt;")
+                .replacingOccurrences(of: "\"", with: "&quot;")
         }
+        func number(_ value: Double) -> String { String(format: "%.5f", value) }
         var xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<roblox version=\"4\">\n<External>null</External>\n<External>null</External>\n"
-        let services = ["Workspace", "Players", "Lighting", "ReplicatedStorage", "ServerScriptService", "StarterGui", "StarterPack", "StarterPlayer", "SoundService", "Teams"]
         for (serviceIndex, service) in services.enumerated() {
-            let ref = "RBX\(serviceIndex)"
-            xml += "<Item class=\"\(service)\" referent=\"\(ref)\"><Properties><string name=\"Name\">\(service)</string></Properties>\n"
+            xml += "<Item class=\"\(service)\" referent=\"RBX\(serviceIndex)\"><Properties><string name=\"Name\">\(service)</string></Properties>\n"
             for (index, node) in nodes.filter({ $0.service == service }).enumerated() {
-                let nodeRef = "RBXOBJ\(serviceIndex)_\(index)"
-                xml += "<Item class=\"\(esc(node.className))\" referent=\"\(nodeRef)\"><Properties><string name=\"Name\">\(esc(node.name))</string>"
+                let ref = "RBXOBJ\(serviceIndex)_\(index)"
+                xml += "<Item class=\"\(esc(node.className))\" referent=\"\(ref)\"><Properties><string name=\"Name\">\(esc(node.name))</string>"
                 if node.className == "Part" {
+                    let shapeToken = node.shape == "Sphere" ? 1 : (node.shape == "Cylinder" ? 2 : 0)
                     xml += "<bool name=\"Anchored\">\(node.anchored ? "true" : "false")</bool>"
-                    xml += "<CoordinateFrame name=\"CFrame\"><X>\(node.x)</X><Y>\(node.y)</Y><Z>\(node.z)</Z><R00>1</R00><R01>0</R01><R02>0</R02><R10>0</R10><R11>1</R11><R12>0</R12><R20>0</R20><R21>0</R21><R22>1</R22></CoordinateFrame>"
-                    xml += "<Vector3 name=\"size\"><X>\(node.width)</X><Y>\(node.height)</Y><Z>\(node.depth)</Z></Vector3>"
-                } else if node.className == "Script" || node.className == "LocalScript" {
-                    xml += "<ProtectedString name=\"Source\"><![CDATA[\(node.source.replacingOccurrences(of: "]]>", with: "]]]]><![CDATA[>"))]]></ProtectedString>"
+                    xml += "<bool name=\"CanCollide\">\(node.canCollide ? "true" : "false")</bool>"
+                    xml += "<float name=\"Transparency\">\(number(node.transparency))</float>"
+                    xml += "<token name=\"Shape\">\(shapeToken)</token>"
+                    xml += "<CoordinateFrame name=\"CFrame\"><X>\(number(node.x))</X><Y>\(number(node.y))</Y><Z>\(number(node.z))</Z><R00>1</R00><R01>0</R01><R02>0</R02><R10>0</R10><R11>1</R11><R12>0</R12><R20>0</R20><R21>0</R21><R22>1</R22></CoordinateFrame>"
+                    xml += "<Vector3 name=\"size\"><X>\(number(node.width))</X><Y>\(number(node.height))</Y><Z>\(number(node.depth))</Z></Vector3>"
+                } else if ["Script", "LocalScript", "ModuleScript"].contains(node.className) {
+                    let source = node.source.replacingOccurrences(of: "]]>", with: "]]]]><![CDATA[>")
+                    xml += "<ProtectedString name=\"Source\"><![CDATA[\(source)]]></ProtectedString>"
                 }
                 xml += "</Properties></Item>\n"
             }
@@ -98,18 +128,37 @@ struct StudioViewport: UIViewRepresentable {
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = true
         view.scene = makeScene()
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.selectNode(_:)))
+        view.addGestureRecognizer(tap)
+        context.coordinator.view = view
         return view
     }
 
     func updateUIView(_ view: SCNView, context: Context) {
         view.scene = makeScene()
+        context.coordinator.view = view
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(project: project) }
+
+    final class Coordinator: NSObject {
+        let project: StudioProject
+        weak var view: SCNView?
+        init(project: StudioProject) { self.project = project }
+        @objc func selectNode(_ gesture: UITapGestureRecognizer) {
+            guard let view = view else { return }
+            let point = gesture.location(in: view)
+            let hit = view.hitTest(point, options: nil).first
+            if let idString = hit?.node.name, let id = UUID(uuidString: idString) {
+                DispatchQueue.main.async { self.project.selectedID = id }
+            }
+        }
     }
 
     private func makeScene() -> SCNScene {
         let scene = SCNScene()
-        let camera = SCNCamera()
         let cameraNode = SCNNode()
-        cameraNode.camera = camera
+        cameraNode.camera = SCNCamera()
         cameraNode.position = SCNVector3(30, 28, 34)
         cameraNode.look(at: SCNVector3(0, 0, 0))
         scene.rootNode.addChildNode(cameraNode)
@@ -122,9 +171,19 @@ struct StudioViewport: UIViewRepresentable {
         scene.rootNode.addChildNode(floorNode)
 
         for item in project.nodes where item.className == "Part" {
-            let box = SCNBox(width: CGFloat(item.width), height: CGFloat(item.height), length: CGFloat(item.depth), chamferRadius: 0.04)
-            box.firstMaterial?.diffuse.contents = item.id == project.selectedID ? UIColor.systemBlue : UIColor(red: 0.55, green: 0.62, blue: 0.72, alpha: 1)
-            let node = SCNNode(geometry: box)
+            let geometry: SCNGeometry
+            switch item.shape {
+            case "Sphere": geometry = SCNSphere(radius: CGFloat(max(item.width, item.height, item.depth) / 2))
+            case "Cylinder": geometry = SCNCylinder(radius: CGFloat(item.width / 2), height: CGFloat(item.height))
+            case "Wedge": geometry = SCNPyramid(width: CGFloat(item.width), height: CGFloat(item.height), length: CGFloat(item.depth))
+            default: geometry = SCNBox(width: CGFloat(item.width), height: CGFloat(item.height), length: CGFloat(item.depth), chamferRadius: 0.04)
+            }
+            let material = SCNMaterial()
+            material.diffuse.contents = item.id == project.selectedID ? UIColor.systemBlue : UIColor(red: 0.55, green: 0.62, blue: 0.72, alpha: 1)
+            material.transparency = 1 - CGFloat(item.transparency)
+            geometry.materials = [material]
+            let node = SCNNode(geometry: geometry)
+            node.name = item.id.uuidString
             node.position = SCNVector3(Float(item.x), Float(item.y), Float(item.z))
             scene.rootNode.addChildNode(node)
         }
