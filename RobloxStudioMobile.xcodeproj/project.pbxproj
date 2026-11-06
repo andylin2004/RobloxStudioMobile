@@ -66,7 +66,7 @@
 				42E413E72610AFE000E3BB6E /* ContentView.swift */,
 				42E413FE26112CA300E3BB6E /* EditingView.swift */,
 				B17A2C6D9E4F4100AABBCC02 /* RBXLXExportDocument.swift */,
-		\t\tA11CE0010000000000000002 /* StudioProject.swift */,
+				A11CE0010000000000000002 /* StudioProject.swift */,
 				42E413FB2610FC6B00E3BB6E /* SideViews.swift */,
 				42E413E92610AFE400E3BB6E /* Assets.xcassets */,
 				42E413EE2610AFE400E3BB6E /* Info.plist */,
@@ -161,7 +161,7 @@
 				42E413E82610AFE000E3BB6E /* ContentView.swift in Sources */,
 				42E413FF26112CA300E3BB6E /* EditingView.swift in Sources */,
 				B17A2C6D9E4F4100AABBCC01 /* RBXLXExportDocument.swift in Sources */,
-		\t\tA11CE0010000000000000001 /* StudioProject.swift in Sources */,
+				A11CE0010000000000000001 /* StudioProject.swift in Sources */,
 				42E413E62610AFE000E3BB6E /* RobloxStudioMobileApp.swift in Sources */,
 				42E413FC2610FC6B00E3BB6E /* SideViews.swift in Sources */,
 			);
