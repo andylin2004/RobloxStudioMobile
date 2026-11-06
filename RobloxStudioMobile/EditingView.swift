@@ -32,7 +32,7 @@ struct EditingView: View {
                                 }
                                 Spacer()
                                 TouchJoystick(title: "LOOK") { vector in
-                                    project.rotateViewport(Double(vector.dx) * 0.035, Double(vector.dy) * 0.025)
+                                    project.rotateViewport(Double(vector.x) * 0.035, Double(vector.y) * 0.025)
                                 }
                             }.padding(18)
                         }
