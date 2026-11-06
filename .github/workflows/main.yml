@@ -1,70 +1,127 @@
-name: Build iOS IPA
+name: RobloxStudioMobile iOS unsigned IPA
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main, legacy]
   pull_request:
-    branches: [ "main" ]
-  workflow_dispatch: 
+    branches: [main, legacy]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: roblox-ios-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
-    # Explicitly targeting macos-14 uses Apple Silicon runners, which spin up faster than generic tags
-    runs-on: macos-latest
+  build-ios:
+    name: Build Project for iPhone and iPad
+    # Using your specified custom/private runner label
+    runs-on: macos-26-intel
+    timeout-minutes: 120
+    env:
+      DERIVED_DATA: ${{ github.workspace }}/build/DerivedData
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-    - name: Set up Xcode Version
-      run: |
-        sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-        xcodebuild -version
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
 
-    - name: Create ExportOptions.plist
-      run: |
-        cat <<EOF > ExportOptions.plist
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://apple.com">
-        <plist version="1.0">
-        <dict>
-            <key>method</key>
-            <string>development</string>
-            <key>signingStyle</key>
-            <string>automatic</string>
-            <key>compileBitcode</key>
-            <false/>
-            <key>destination</key>
-            <string>export</string>
-        </dict>
-        </plist>
-        EOF
+      - name: Scan and Detect Project Files
+        id: detect
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          
+          # Dynamically locate the .xcodeproj file in the repository
+          XCODEPROJ=$(find . -name "*.xcodeproj" -maxdepth 2 | head -n 1 | sed 's|^\./||')
+          if [ -z "$XCODEPROJ" ]; then
+            echo "::error::No .xcodeproj file found in the repository."
+            exit 1
+          fi
+          PROJECT_NAME=$(basename "$XCODEPROJ" .xcodeproj)
+          
+          # Dynamically extract the first available build target
+          TARGET_NAME=$(xcodebuild -list -project "$XCODEPROJ" | awk '/Targets:/ {flag=1; next} /Build Configurations:/ {flag=0} flag' | sed 's/^[[:space:]]*//' | grep -v '^$' | head -n 1)
+          if [ -z "$TARGET_NAME" ]; then
+            echo "::error::No build targets found in $XCODEPROJ."
+            exit 1
+          fi
+          
+          echo "Found Project: $XCODEPROJ"
+          echo "Found Target: $TARGET_NAME"
+          
+          # Save variables for subsequent steps
+          echo "xcodeproj=$XCODEPROJ" >> $GITHUB_OUTPUT
+          echo "project_name=$PROJECT_NAME" >> $GITHUB_OUTPUT
+          echo "target=$TARGET_NAME" >> $GITHUB_OUTPUT
 
-    - name: Build Archive
-      run: |
-        # Explicit output streaming keeps the runner from reporting an idle state
-        xcodebuild archive \
-          -project RobloxStudioMobile.xcodeproj \
-          -scheme RobloxStudioMobile \
-          -destination 'generic/platform=iOS' \
-          -archivePath ./build/RobloxStudioMobile.xcarchive \
-          CODE_SIGNING_ALLOWED=NO \
-          CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGN_IDENTITY="" \
-          COMPILER_INDEX_STORE_ENABLE=NO
+      - name: Show Xcode configuration
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks
+          xcodebuild -list -project "${{ steps.detect.outputs.xcodeproj }}"
 
-    - name: Export IPA (Unsigned)
-      run: |
-        xcodebuild -exportArchive \
-          -archivePath ./build/RobloxStudioMobile.xcarchive \
-          -exportOptionsPlist ExportOptions.plist \
-          -exportPath ./build/OutputIPA \
-          CODE_SIGNING_ALLOWED=NO \
-          CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGN_IDENTITY=""
+      - name: Compile iOS target
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project "${{ steps.detect.outputs.xcodeproj }}" \
+            -target "${{ steps.detect.outputs.target }}" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$DERIVED_DATA" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee build/xcodebuild.log
 
-    - name: Upload IPA Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: RobloxStudioMobile-Unsigned-IPA
-        path: ./build/OutputIPA/*.ipa
+      - name: Package and verify unsigned IPA
+        run: |
+          set -euo pipefail
+          APP="$DERIVED_DATA/Build/Products/Release-iphoneos/${{ steps.detect.outputs.project_name }}.app"
+          if [ ! -d "$APP" ]; then
+            echo "::error::Application bundle (.app) was not produced."
+            find "$DERIVED_DATA/Build/Products" -maxdepth 4 -print || true
+            exit 1
+          fi
+          
+          test -f "$APP/Info.plist"
+          plutil -lint "$APP/Info.plist"
+          
+          rm -rf build/ipa build/${{ steps.detect.outputs.project_name }}-unsigned.ipa
+          mkdir -p build/ipa/Payload
+          ditto "$APP" build/ipa/Payload/${{ steps.detect.outputs.project_name }}.app
+          
+          (cd build/ipa && /usr/bin/zip -qry ../${{ steps.detect.outputs.project_name }}-unsigned.ipa Payload)
+          /usr/bin/unzip -tq build/${{ steps.detect.outputs.project_name }}-unsigned.ipa
+          test -s build/${{ steps.detect.outputs.project_name }}-unsigned.ipa
+          shasum -a 256 build/${{ steps.detect.outputs.project_name }}-unsigned.ipa
+          
+          # Store the filename for the upload step
+          echo "${{ steps.detect.outputs.project_name }}-unsigned.ipa" > build/filename.txt
+
+      - name: Upload unsigned IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.detect.outputs.project_name }}-iOS-unsigned-IPA
+          path: build/*-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-failure-logs
+          path: build/xcodebuild.log
+          if-no-files-found: ignore
+          retention-days: 7
