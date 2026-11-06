@@ -169,7 +169,7 @@ extension StudioProject {
                 property("Transparency", type: 0x04, bytes: floatArray(parts.map { Float($0.transparency) }))
                 var shapeBytes: [[UInt8]] = []
                 for part in parts {
-                    let token: UInt32 = part.shape == "Sphere" ? 1 : (part.shape == "Cylinder" ? 2 : 0)
+                    let token: UInt32 = part.shape == "Sphere" ? 0 : (part.shape == "Cylinder" ? 2 : 1)
                     shapeBytes.append([UInt8((token >> 24) & 255), UInt8((token >> 16) & 255), UInt8((token >> 8) & 255), UInt8(token & 255)])
                 }
                 property("Shape", type: 0x12, bytes: interleave(shapeBytes))
