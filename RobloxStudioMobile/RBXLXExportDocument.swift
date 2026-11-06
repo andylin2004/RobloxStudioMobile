@@ -66,8 +66,7 @@ extension StudioProject {
             classIDs[className] = Int32(classID)
             ordered.append(contentsOf: (grouped[className] ?? []).map { $0.element })
         }
-        let oldToNew = Dictionary(uniqueKeysWithValues: ordered.enumerated().map { ($1.name + "|" + ($1.node?.id.uuidString ?? "service:" + $1.name), Int32($0)) })
-        // Rebuild stable IDs from object identity and service names.
+        // Build stable IDs from object identity and service names.
         var recordIDs: [String: Int32] = [:]
         for (index, record) in ordered.enumerated() {
             let key = record.node?.id.uuidString ?? "service:" + record.name
@@ -118,6 +117,9 @@ extension StudioProject {
         func floatArray(_ values: [Float]) -> [UInt8] {
             interleave(values.map { rotatedFloat($0) })
         }
+        func vector3Array(_ values: [[Float]]) -> [UInt8] {
+            interleave(values.map { vector in vector.flatMap { rotatedFloat($0) } })
+        }
         func appendChunk(_ signature: String, payload: Data, to output: inout Data) {
             output.append(Data(signature.utf8.prefix(4)))
             putU32(0, into: &output)
@@ -146,7 +148,7 @@ extension StudioProject {
                 return recordIDs[key] ?? 0
             }
             payload.append(contentsOf: refBytes(ids))
-            if hasService { payload.append(contentsOf: entries.map { $0.element.isService ? 1 : 0 }) }
+            if hasService { payload.append(contentsOf: entries.map { $0.element.isService ? UInt8(1) : UInt8(0) }) }
             appendChunk("INST", payload: payload, to: &output)
 
             func property(_ name: String, type: UInt8, bytes: [UInt8]) {
@@ -173,9 +175,9 @@ extension StudioProject {
                 property("Shape", type: 0x12, bytes: interleave(shapeBytes))
                 var cframe = Data()
                 for _ in parts { putU8(0x02, into: &cframe) }
-                cframe.append(contentsOf: floatArray(parts.flatMap { [Float($0.x), Float($0.y), Float($0.z)] }))
+                cframe.append(contentsOf: vector3Array(parts.map { [Float($0.x), Float($0.y), Float($0.z)] }))
                 property("CFrame", type: 0x10, bytes: Array(cframe))
-                property("Size", type: 0x0E, bytes: floatArray(parts.flatMap { [Float($0.width), Float($0.height), Float($0.depth)] }))
+                property("Size", type: 0x0E, bytes: vector3Array(parts.map { [Float($0.width), Float($0.height), Float($0.depth)] }))
             } else if ["Script", "LocalScript", "ModuleScript"].contains(className) {
                 property("Source", type: 0x01, bytes: entries.flatMap { entry -> [UInt8] in
                     var d = Data(); putString(entry.element.node?.source ?? "", into: &d); return Array(d)
@@ -189,8 +191,7 @@ extension StudioProject {
         let childIDs = Array(ordered.indices).map { Int32($0) }
         let parentIDs: [Int32] = ordered.map { record in
             if record.isService { return -1 }
-            let key = "service:" + record.node!.service
-            return serviceIDs[key == "" ? "" : record.node!.service] ?? -1
+            return serviceIDs[record.node!.service] ?? -1
         }
         parentPayload.append(contentsOf: refBytes(childIDs))
         parentPayload.append(contentsOf: refBytes(parentIDs))
