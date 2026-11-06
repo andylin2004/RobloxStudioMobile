@@ -164,8 +164,8 @@ extension StudioProject {
             })
             if className == "Part" {
                 let parts = entries.compactMap { $0.node }
-                property("Anchored", type: 0x02, bytes: parts.map { $0.anchored ? 1 : 0 })
-                property("CanCollide", type: 0x02, bytes: parts.map { $0.canCollide ? 1 : 0 })
+                property("Anchored", type: 0x02, bytes: parts.map { $0.anchored ? UInt8(1) : UInt8(0) })
+                property("CanCollide", type: 0x02, bytes: parts.map { $0.canCollide ? UInt8(1) : UInt8(0) })
                 property("Transparency", type: 0x04, bytes: floatArray(parts.map { Float($0.transparency) }))
                 var shapeBytes: [[UInt8]] = []
                 for part in parts {
