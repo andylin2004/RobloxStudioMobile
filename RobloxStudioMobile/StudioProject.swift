@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import SceneKit
+import UIKit
 
 struct StudioNode: Identifiable, Codable, Equatable {
     var id: UUID = UUID()
@@ -121,22 +122,11 @@ struct StudioViewport: UIViewRepresentable {
         floorNode.geometry?.firstMaterial?.diffuse.contents = UIColor(red: 0.34, green: 0.39, blue: 0.48, alpha: 1)
         scene.rootNode.addChildNode(floorNode)
 
-        let grid = SCNGrid()
-        grid.width = 120
-        grid.height = 120
-        grid.cellSize = 4
-        grid.cellThickness = 0.6
-        grid.firstMaterial?.diffuse.contents = UIColor(white: 0.72, alpha: 0.35)
-        let gridNode = SCNNode(geometry: grid)
-        gridNode.eulerAngles.x = -.pi / 2
-        gridNode.position.y = -2.08
-        scene.rootNode.addChildNode(gridNode)
-
         for item in project.nodes where item.className == "Part" {
             let box = SCNBox(width: CGFloat(item.width), height: CGFloat(item.height), length: CGFloat(item.depth), chamferRadius: 0.04)
             box.firstMaterial?.diffuse.contents = item.id == project.selectedID ? UIColor.systemBlue : UIColor(red: 0.55, green: 0.62, blue: 0.72, alpha: 1)
             let node = SCNNode(geometry: box)
-            node.position = SCNVector3(item.x, item.y, item.z)
+            node.position = SCNVector3(Float(item.x), Float(item.y), Float(item.z))
             scene.rootNode.addChildNode(node)
         }
         return scene
