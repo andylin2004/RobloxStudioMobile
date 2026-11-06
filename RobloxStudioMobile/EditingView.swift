@@ -7,16 +7,20 @@ struct EditingView: View {
     @State private var showExporter = false
     @State private var showScript = false
     @State private var showAnimationPanel = false
+    @State private var toolboxSearch = ""
+    @State private var toolboxTab = "Models"
+    @State private var commandText = ""
 
     private var selectedNode: StudioNode? { project.selectedNode }
 
     var body: some View {
         VStack(spacing: 0) {
-            toolbar
+            topToolbar
+            ribbon
             Divider()
             GeometryReader { geo in
                 HStack(spacing: 0) {
-                    toolbox.frame(width: max(145, geo.size.width * 0.19))
+                    toolbox.frame(width: max(190, geo.size.width * 0.225))
                     Divider()
                     VStack(spacing: 0) {
                         HStack {
@@ -42,14 +46,14 @@ struct EditingView: View {
                         explorer
                         Divider()
                         inspector
-                    }.frame(width: max(205, geo.size.width * 0.24))
+                    }.frame(width: max(230, geo.size.width * 0.235))
                 }
             }
-            bottomBar
+            commandBar
         }
         .background(Color(red: 0.91, green: 0.93, blue: 0.96))
         .preferredColorScheme(.light)
-        .fileExporter(isPresented: $showExporter, document: RBXLXExportDocument(text: project.exportXML()), contentType: .rbxlx, defaultFilename: project.name + ".rbxlx") { _ in }
+        .fileExporter(isPresented: $showExporter, document: binaryDocument, contentType: UTType(filenameExtension: "rbxl") ?? .data, defaultFilename: project.name + ".rbxl") { _ in }
         .sheet(isPresented: $showScript) {
             NavigationView {
                 VStack(alignment: .leading, spacing: 8) {
@@ -66,64 +70,115 @@ struct EditingView: View {
         .sheet(isPresented: $showAnimationPanel) { animationSheet }
     }
 
-    private var toolbar: some View {
+    private var binaryDocument: RBXLBinaryExportDocument {
+        do { return RBXLBinaryExportDocument(data: try project.exportBinaryRBXL()) }
+        catch { return RBXLBinaryExportDocument(data: Data()) }
+    }
+
+    private var topToolbar: some View {
+        HStack(spacing: 14) {
+            Button { presentationMode.wrappedValue.dismiss() } label: { Image(systemName: "line.3.horizontal").font(.system(size: 19, weight: .semibold)) }.foregroundColor(.primary)
+            Image(systemName: "cube.fill").font(.system(size: 25)).foregroundColor(Color(red: 0.0, green: 0.42, blue: 0.95))
+            ForEach(["Home", "Model", "Test", "View", "Plugins"], id: \.self) { tab in
+                Button(tab) { project.activeTab = tab }
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(project.activeTab == tab ? .white : .primary)
+                    .padding(.horizontal, 17).padding(.vertical, 10)
+                    .background(project.activeTab == tab ? Color.blue : Color.clear).cornerRadius(9)
+            }
+            Spacer(minLength: 4)
+            Button { showExporter = true } label: {
+                Label("Export .rbxl", systemImage: "square.and.arrow.up")
+                    .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
+                    .padding(.horizontal, 13).padding(.vertical, 10).background(Color.blue).cornerRadius(9)
+            }
+            Button { project.duplicateSelected() } label: { Image(systemName: "arrow.uturn.backward") }.foregroundColor(.secondary)
+            Button { project.deleteSelected() } label: { Image(systemName: "arrow.uturn.forward") }.foregroundColor(.secondary)
+        }.padding(.horizontal, 12).padding(.vertical, 7)
+            .background(Color(red: 0.96, green: 0.97, blue: 0.99))
+    }
+
+    private var ribbon: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 13) {
-                Button("Done") { presentationMode.wrappedValue.dismiss() }
-                Divider().frame(height: 24)
-                ForEach(["Home", "Model", "Test", "View"], id: \.self) { tab in
-                    Button(tab) { project.activeTab = tab }
-                        .foregroundColor(project.activeTab == tab ? .white : .gray)
+            HStack(spacing: 0) {
+                ribbonGroup("Clipboard", items: [("Paste", "doc.on.clipboard"), ("Cut", "scissors"), ("Copy", "doc.on.doc"), ("Duplicate", "plus.square.on.square")]) { project.duplicateSelected() }
+                ribbonGroup("Tools", items: [("Select", "cursorarrow"), ("Move", "move.3d"), ("Scale", "arrow.up.left.and.arrow.down.right"), ("Rotate", "rotate.3d")]) {}
+                ribbonGroup("Insert", items: [("Part", "cube.fill"), ("Terrain", "mountain.2.fill"), ("Insert Object", "plus")]) { project.addPart(shape: "Block") }
+                ribbonGroup("Edit", items: [("Material", "circle.lefthalf.filled"), ("Color", "paintpalette"), ("Anchor", "pin.fill")]) {}
+                ribbonGroup("Test", items: [("Play", "play.fill"), ("Stop", "stop.fill"), ("Game Settings", "gearshape"), ("Team Test", "person.3.fill")]) {}
+                ribbonGroup("Animation", items: [("Animation Editor", "figure.run")]) { showAnimationPanel = true }
+            }.padding(.horizontal, 5).padding(.vertical, 5)
+        }.frame(height: 86).background(Color(red: 0.94, green: 0.95, blue: 0.97))
+    }
+
+    private func ribbonGroup(_ title: String, items: [(String, String)], action: @escaping () -> Void) -> some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 12) {
+                ForEach(items, id: \.0) { item in
+                    Button(action: action) {
+                        VStack(spacing: 4) {
+                            Image(systemName: item.1).font(.system(size: 23, weight: .medium)).foregroundColor(.blue)
+                            Text(item.0).font(.system(size: 10, weight: .medium)).foregroundColor(.primary).lineLimit(1)
+                        }.frame(minWidth: 47)
+                    }.buttonStyle(PlainButtonStyle())
                 }
-                Divider().frame(height: 24)
-                Menu {
-                    Button("Block") { project.addPart(shape: "Block") }
-                    Button("Sphere") { project.addPart(shape: "Sphere") }
-                    Button("Cylinder") { project.addPart(shape: "Cylinder") }
-                    Button("Wedge") { project.addPart(shape: "Wedge") }
-                } label: { Label("Add Part", systemImage: "cube").font(.system(size: 13, weight: .semibold)) }
-                Menu {
-                    Button("Script") { project.addScript(kind: "Script"); showScript = true }
-                    Button("LocalScript") { project.addScript(kind: "LocalScript"); showScript = true }
-                    Button("ModuleScript") { project.addScript(kind: "ModuleScript"); showScript = true }
-                } label: { Label("Script", systemImage: "curlybraces").font(.system(size: 13, weight: .semibold)) }
-                Button { project.duplicateSelected() } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
-                    .disabled(selectedNode == nil)
-                Button { project.deleteSelected() } label: { Label("Delete", systemImage: "trash") }
-                    .disabled(selectedNode == nil)
-                Button { showAnimationPanel = true } label: { Label("Animation", systemImage: "figure.run") }
-                Button { showExporter = true } label: {
-                    Label("Export .RBXLX", systemImage: "square.and.arrow.up")
-                        .font(.system(size: 13, weight: .bold))
-                        .padding(.horizontal, 10).padding(.vertical, 7)
-                        .background(Color.blue).cornerRadius(6)
-                }
-            }.font(.system(size: 13, weight: .semibold)).padding(.horizontal, 12).padding(.vertical, 9)
-        }.background(Color(red: 0.96, green: 0.97, blue: 0.99))
+            }.padding(.horizontal, 9)
+            Text(title).font(.system(size: 9)).foregroundColor(.secondary)
+        }.padding(.horizontal, 7)
+            .overlay(alignment: .trailing) { Rectangle().fill(Color.gray.opacity(0.22)).frame(width: 1).padding(.vertical, 5) }
     }
 
     private var toolbox: some View {
         VStack(alignment: .leading, spacing: 0) {
-            panelHeader("Toolbox")
+            HStack {
+                Text("Toolbox").font(.system(size: 16, weight: .bold))
+                Spacer()
+                Image(systemName: "lock").font(.system(size: 13))
+                Image(systemName: "chevron.left.2").font(.system(size: 13)).padding(.leading, 8)
+            }.padding(10)
+            HStack {
+                TextField("Search models...", text: $toolboxSearch).font(.system(size: 13))
+                Image(systemName: "magnifyingglass").foregroundColor(.secondary)
+            }.padding(9).background(Color.white).cornerRadius(7).padding(.horizontal, 8).padding(.bottom, 8)
+            HStack(spacing: 4) {
+                ForEach(["Models", "Decals", "Plugins"], id: \.self) { tab in
+                    Button(tab) { toolboxTab = tab }
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(toolboxTab == tab ? .white : .primary)
+                        .frame(maxWidth: .infinity).padding(.vertical, 8)
+                        .background(toolboxTab == tab ? Color.blue : Color.gray.opacity(0.12)).cornerRadius(6)
+                }
+            }.padding(.horizontal, 8).padding(.bottom, 8)
             ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("CREATE").font(.system(size: 10, weight: .bold)).foregroundColor(.secondary)
-                    toolButton("Block", icon: "cube") { project.addPart(shape: "Block") }
-                    toolButton("Sphere", icon: "circle") { project.addPart(shape: "Sphere") }
-                    toolButton("Cylinder", icon: "cylinder") { project.addPart(shape: "Cylinder") }
-                    toolButton("Wedge", icon: "triangle") { project.addPart(shape: "Wedge") }
-                    Divider()
-                    Text("SCRIPTS").font(.system(size: 10, weight: .bold)).foregroundColor(.secondary)
-                    toolButton("Script", icon: "doc.text") { project.addScript(kind: "Script"); showScript = true }
-                    toolButton("LocalScript", icon: "iphone") { project.addScript(kind: "LocalScript"); showScript = true }
-                    toolButton("ModuleScript", icon: "shippingbox") { project.addScript(kind: "ModuleScript"); showScript = true }
-                    Divider()
-                    Text("EDIT").font(.system(size: 10, weight: .bold)).foregroundColor(.secondary)
-                    toolButton("Duplicate", icon: "plus.square.on.square") { project.duplicateSelected() }
-                    toolButton("Delete", icon: "trash") { project.deleteSelected() }
-                }.padding(10)
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 7) {
+                    ForEach(toolboxItems.filter { toolboxSearch.isEmpty || $0.0.localizedCaseInsensitiveContains(toolboxSearch) }, id: \.0) { item in
+                        Button {
+                            switch item.0 {
+                            case "Sphere": project.addPart(shape: "Sphere")
+                            case "Cylinder": project.addPart(shape: "Cylinder")
+                            case "Wedge": project.addPart(shape: "Wedge")
+                            default: project.addPart(shape: "Block")
+                            }
+                        } label: {
+                            VStack(spacing: 5) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 5).fill(Color(red: 0.91, green: 0.94, blue: 0.98))
+                                    Image(systemName: item.1).font(.system(size: 31)).foregroundColor(item.2)
+                                }.frame(height: 66)
+                                Text(item.0).font(.system(size: 10, weight: .medium)).foregroundColor(.primary).lineLimit(1)
+                            }.padding(5).background(Color.white).cornerRadius(6)
+                        }.buttonStyle(PlainButtonStyle())
+                    }
+                }.padding(7)
             }
-        }.background(Color.black.opacity(0.12))
+        }.background(Color(red: 0.93, green: 0.95, blue: 0.98))
+    }
+
+    private var toolboxItems: [(String, String, Color)] {
+        [("Block", "cube.fill", .gray), ("Sphere", "circle.fill", .gray), ("Cylinder", "cylinder.fill", .gray),
+         ("Wedge", "triangle.fill", .gray), ("Corner Wedge", "triangle", .gray), ("Truss", "square.grid.3x3", .gray),
+         ("Tree", "tree.fill", .green), ("House", "house.fill", .brown), ("Car", "car.fill", .red),
+         ("R6 Rig", "figure.stand", .blue), ("R15 Rig", "figure.walk", .green), ("NPC", "person.fill", .orange)]
     }
 
     private var explorer: some View {
@@ -257,13 +312,14 @@ struct EditingView: View {
         }.buttonStyle(PlainButtonStyle())
     }
 
-    private var bottomBar: some View {
-        HStack {
-            Text("Ready").foregroundColor(.green)
+    private var commandBar: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "chevron.right").font(.system(size: 10, weight: .bold))
+            TextField("Run a command", text: $commandText).font(.system(size: 12)).onSubmit { commandText = "" }
             Spacer()
-            Text("\(project.nodes.count) instances")
-            Text(" • iPad Studio")
-        }.font(.system(size: 10, weight: .medium)).padding(8).background(Color(red: 0.94, green: 0.95, blue: 0.97))
+        }.padding(.horizontal, 10).padding(.vertical, 9)
+            .background(Color(red: 0.97, green: 0.98, blue: 0.99))
+            .overlay(alignment: .top) { Rectangle().fill(Color.gray.opacity(0.25)).frame(height: 1) }
     }
 }
 
