@@ -2,7 +2,7 @@ name: RobloxStudioMobile iOS unsigned IPA
 
 on:
   push:
-    branches: [main, legacy]
+    branches: [main, legacy, studio-ui-and-export]
   pull_request:
     branches: [main, legacy]
   workflow_dispatch:
@@ -16,14 +16,18 @@ concurrency:
 
 jobs:
   build-ios:
-    name: Build Project for iPhone and iPad
+    name: Build RobloxStudioMobile for iPhone and iPad
+    # macos-26-intel is a supported GitHub-hosted runner label.
     runs-on: macos-26-intel
     timeout-minutes: 120
     env:
+      PROJECT_PATH: RobloxStudioMobile.xcodeproj
+      SCHEME_NAME: RobloxStudioMobile
       DERIVED_DATA: ${{ github.workspace }}/build/DerivedData
+      PACKAGE_CACHE: ${{ github.workspace }}/build/SourcePackages
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
@@ -33,95 +37,92 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Scan and Detect Project Files
-        id: detect
+      - name: Verify project and scheme
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d "$PROJECT_PATH"
+          test -f "$PROJECT_PATH/project.pbxproj"
+          test -f "$PROJECT_PATH/xcshareddata/xcschemes/$SCHEME_NAME.xcscheme"
+          mkdir -p build
+          xcodebuild -version
+          xcodebuild -showsdks
+          xcodebuild -list -project "$PROJECT_PATH" | tee build/xcode-list.log
+
+      - name: Resolve Swift package dependencies
+        timeout-minutes: 25
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$PACKAGE_CACHE" build
+          xcodebuild \
+            -resolvePackageDependencies \
+            -project "$PROJECT_PATH" \
+            -scheme "$SCHEME_NAME" \
+            -clonedSourcePackagesDirPath "$PACKAGE_CACHE" \
+            2>&1 | tee build/package-resolution.log
+
+      - name: Compile unsigned iOS app
+        timeout-minutes: 70
+        shell: bash
         run: |
           set -euo pipefail
           mkdir -p build
-          
-          # Dynamically locate the .xcodeproj file in the repository
-          XCODEPROJ=$(find . -name "*.xcodeproj" -maxdepth 2 | head -n 1 | sed 's|^\./||')
-          if [ -z "$XCODEPROJ" ]; then
-            echo "::error::No .xcodeproj file found in the repository."
-            exit 1
-          fi
-          PROJECT_NAME=$(basename "$XCODEPROJ" .xcodeproj)
-          
-          # Dynamically extract the first available Scheme instead of Target
-          SCHEME_NAME=$(xcodebuild -list -project "$XCODEPROJ" | awk '/Schemes:/ {flag=1; next} /^$/ {flag=0} flag' | sed 's/^[[:space:]]*//' | grep -v '^$' | head -n 1)
-          
-          # Fallback to project name if no scheme is parsed explicitly
-          if [ -z "$SCHEME_NAME" ]; then
-            SCHEME_NAME="$PROJECT_NAME"
-          fi
-          
-          echo "Found Project: $XCODEPROJ"
-          echo "Found Scheme: $SCHEME_NAME"
-          
-          # Save variables for subsequent steps
-          echo "xcodeproj=$XCODEPROJ" >> $GITHUB_OUTPUT
-          echo "project_name=$PROJECT_NAME" >> $GITHUB_OUTPUT
-          echo "scheme=$SCHEME_NAME" >> $GITHUB_OUTPUT
-
-      - name: Show Xcode configuration
-        run: |
-          xcodebuild -version
-          xcodebuild -showsdks
-          xcodebuild -list -project "${{ steps.detect.outputs.xcodeproj }}"
-
-      - name: Compile iOS target
-        run: |
-          set -euo pipefail
-          # Swapped -target to -scheme to satisfy -derivedDataPath rules
           xcodebuild \
-            -project "${{ steps.detect.outputs.xcodeproj }}" \
-            -scheme "${{ steps.detect.outputs.scheme }}" \
+            -project "$PROJECT_PATH" \
+            -scheme "$SCHEME_NAME" \
             -configuration Release \
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             -derivedDataPath "$DERIVED_DATA" \
+            -clonedSourcePackagesDirPath "$PACKAGE_CACHE" \
+            -disableAutomaticPackageResolution \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_IDENTITY= \
             build 2>&1 | tee build/xcodebuild.log
 
       - name: Package and verify unsigned IPA
+        shell: bash
         run: |
           set -euo pipefail
-          # Find any produced .app file dynamically inside the configuration output directory
-          APP=$(find "$DERIVED_DATA/Build/Products/Release-iphoneos" -name "*.app" -maxdepth 1 | head -n 1)
-          
-          if [ -z "$APP" ] || [ ! -d "$APP" ]; then
-            echo "::error::Application bundle (.app) was not produced."
-            find "$DERIVED_DATA/Build/Products" -maxdepth 4 -print || true
+          APP_DIR="$DERIVED_DATA/Build/Products/Release-iphoneos"
+          APP="$(find "$APP_DIR" -maxdepth 1 -type d -name '*.app' -print -quit)"
+
+          if [[ -z "$APP" || ! -d "$APP" ]]; then
+            echo "::error::No .app bundle was produced."
+            find "$DERIVED_DATA/Build/Products" -maxdepth 5 -print || true
             exit 1
           fi
-          
-          test -f "$APP/Info.plist"
-          plutil -lint "$APP/Info.plist"
-          
-          rm -rf build/ipa build/${{ steps.detect.outputs.project_name }}-unsigned.ipa
-          mkdir -p build/ipa/Payload
-          ditto "$APP" build/ipa/Payload/$(basename "$APP")
-          
-          (cd build/ipa && /usr/bin/zip -qry ../${{ steps.detect.outputs.project_name }}-unsigned.ipa Payload)
-          /usr/bin/unzip -tq build/${{ steps.detect.outputs.project_name }}-unsigned.ipa
-          test -s build/${{ steps.detect.outputs.project_name }}-unsigned.ipa
-          shasum -a 256 build/${{ steps.detect.outputs.project_name }}-unsigned.ipa
 
-      - name: Upload unsigned IPA artifact
+          test -s "$APP/Info.plist"
+          plutil -lint "$APP/Info.plist"
+
+          IPA="build/RobloxStudioMobile-iOS-unsigned.ipa"
+          rm -rf build/ipa "$IPA"
+          mkdir -p build/ipa/Payload
+          ditto "$APP" "build/ipa/Payload/$(basename "$APP")"
+          (cd build/ipa && /usr/bin/zip -qry "../$(basename "$IPA")" Payload)
+
+          /usr/bin/unzip -tq "$IPA"
+          test -s "$IPA"
+          shasum -a 256 "$IPA"
+
+      - name: Upload unsigned IPA
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.detect.outputs.project_name }}-iOS-unsigned-IPA
-          path: build/*-unsigned.ipa
+          name: RobloxStudioMobile-iOS-unsigned-IPA
+          path: build/RobloxStudioMobile-iOS-unsigned.ipa
           if-no-files-found: error
           retention-days: 14
 
-      - name: Upload build logs on failure
+      - name: Upload build diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: build-failure-logs
-          path: build/xcodebuild.log
+          name: RobloxStudioMobile-build-diagnostics
+          path: |
+            build/*.log
+            build/DerivedData/Logs/Build/**
           if-no-files-found: ignore
           retention-days: 7
