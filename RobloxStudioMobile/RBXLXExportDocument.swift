@@ -140,15 +140,15 @@ extension StudioProject {
             var payload = Data()
             putI32(classID, into: &payload)
             putString(className, into: &payload)
-            let hasService = entries.contains { $0.element.isService }
+            let hasService = entries.contains { $0.isService }
             putU8(hasService ? 1 : 0, into: &payload)
             putU32(UInt32(entries.count), into: &payload)
             let ids = entries.map { entry -> Int32 in
-                let key = entry.element.node?.id.uuidString ?? "service:" + entry.element.name
+                let key = entry.node?.id.uuidString ?? "service:" + entry.name
                 return recordIDs[key] ?? 0
             }
             payload.append(contentsOf: refBytes(ids))
-            if hasService { payload.append(contentsOf: entries.map { $0.element.isService ? UInt8(1) : UInt8(0) }) }
+            if hasService { payload.append(contentsOf: entries.map { $0.isService ? UInt8(1) : UInt8(0) }) }
             appendChunk("INST", payload: payload, to: &output)
 
             func property(_ name: String, type: UInt8, bytes: [UInt8]) {
@@ -160,10 +160,10 @@ extension StudioProject {
                 appendChunk("PROP", payload: p, to: &output)
             }
             property("Name", type: 0x01, bytes: entries.flatMap { entry -> [UInt8] in
-                var d = Data(); putString(entry.element.name, into: &d); return Array(d)
+                var d = Data(); putString(entry.name, into: &d); return Array(d)
             })
             if className == "Part" {
-                let parts = entries.compactMap { $0.element.node }
+                let parts = entries.compactMap { $0.node }
                 property("Anchored", type: 0x02, bytes: parts.map { $0.anchored ? 1 : 0 })
                 property("CanCollide", type: 0x02, bytes: parts.map { $0.canCollide ? 1 : 0 })
                 property("Transparency", type: 0x04, bytes: floatArray(parts.map { Float($0.transparency) }))
@@ -180,7 +180,7 @@ extension StudioProject {
                 property("Size", type: 0x0E, bytes: vector3Array(parts.map { [Float($0.width), Float($0.height), Float($0.depth)] }))
             } else if ["Script", "LocalScript", "ModuleScript"].contains(className) {
                 property("Source", type: 0x01, bytes: entries.flatMap { entry -> [UInt8] in
-                    var d = Data(); putString(entry.element.node?.source ?? "", into: &d); return Array(d)
+                    var d = Data(); putString(entry.node?.source ?? "", into: &d); return Array(d)
                 })
             }
         }
