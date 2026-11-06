@@ -5,11 +5,12 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-  workflow_dispatch: # Allows manually triggering the build from the GitHub Actions tab
+  workflow_dispatch: 
 
 jobs:
   build:
-    runs-on: macos-latest
+    # Explicitly targeting macos-14 uses Apple Silicon runners, which spin up faster than generic tags
+    runs-on: macos-14
 
     steps:
     - name: Checkout Repository
@@ -17,7 +18,6 @@ jobs:
 
     - name: Set up Xcode Version
       run: |
-        # Use the latest stable Xcode available on the runner
         sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
         xcodebuild -version
 
@@ -42,6 +42,7 @@ jobs:
 
     - name: Build Archive
       run: |
+        # Explicit output streaming keeps the runner from reporting an idle state
         xcodebuild archive \
           -project RobloxStudioMobile.xcodeproj \
           -scheme RobloxStudioMobile \
@@ -49,7 +50,8 @@ jobs:
           -archivePath ./build/RobloxStudioMobile.xcarchive \
           CODE_SIGNING_ALLOWED=NO \
           CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGN_IDENTITY=""
+          CODE_SIGN_IDENTITY="" \
+          COMPILER_INDEX_STORE_ENABLE=NO
 
     - name: Export IPA (Unsigned)
       run: |
@@ -62,7 +64,7 @@ jobs:
           CODE_SIGN_IDENTITY=""
 
     - name: Upload IPA Artifact
-      uses: actions/artifacts@v4
+      uses: actions/upload-artifact@v4
       with:
         name: RobloxStudioMobile-Unsigned-IPA
         path: ./build/OutputIPA/*.ipa
