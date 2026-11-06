@@ -1,212 +1,165 @@
-//
-//  EditingView.swift
-//  RobloxStudioMobile
-//
-//  Created by Andy Lin on 3/28/21.
-//
-
 import SwiftUI
-import Drawer
+import SceneKit
 
 struct EditingView: View {
     @Environment(\.presentationMode) private var presentationMode
-    @Environment(\.horizontalSizeClass) private var sizeClass
-    @EnvironmentObject private var loading: LoadingFile
-    @StateObject private var script = ScriptFile()
-    @StateObject private var propertyList = PropertyInfoArray()
-    let file: String
-    let fileName: String
-    let parsedArray: Array<RbxObject>
-    @State private var leftOffset: Bool = false
-    @State private var rightOffset: Bool = false
-    @State private var controlButton = 0
-    
-    init(file: String, fileName: String){
-        self.file = file
-        self.fileName = fileName
-        
-        self.parsedArray = parseFile(data: file)
-    }
-    
+    @ObservedObject var project: StudioProject
+    @State private var panel = "Explorer"
+    @State private var showExporter = false
+    @State private var showScript = false
+    @State private var exportURL: URL?
+
     var body: some View {
-        if sizeClass == .regular{
-            NavigationView{
-                GeometryReader{ geometry in
-                    HStack{
-                        mainListView(parsedArray: parsedArray, file: file)
-                            .padding(.trailing, -7)
-                            .frame(width: geometry.size.width*0.25)
-                            .animation(.default)
-                            .offset(x: leftOffset ? geometry.size.width * -0.25 - 7 : 0)
-                        Divider()
-                            .animation(.default)
-                            .offset(x: leftOffset ? geometry.size.width * -0.25 - 7 : 0)
-                        mainView(additional: (leftOffset ? geometry.size.width * 0.25 + 7 : 0) + (rightOffset ? geometry.size.width * 0.25 + 9: 0))
-                            .offset(x: (leftOffset ? geometry.size.width * -0.25 - 7 : 0))
-                            .animation(.default)
-                        Divider()
-                            .animation(.default)
-                            .offset(x: (rightOffset ? geometry.size.width * 0.25 + 7 : 0))
-                        PropertyView()
-                            .padding(.leading, -7)
-                            .frame(width: geometry.size.width*0.25)
-                            .animation(.default)
-                            .offset(x: (rightOffset ? geometry.size.width * 0.25 + 7 : 0))
-                    }
-                }.navigationBarTitle(fileName, displayMode: .inline)
-                .toolbar{
-                    ToolbarItemGroup(placement: .navigationBarLeading){
-                        Button(action:{presentationMode.wrappedValue.dismiss()}, label:{
-                            Text("Done")
-                        }).buttonStyle(DefaultButtonStyle())
-                        Button(action: {
-                            leftOffset.toggle()
-                        }, label: {
-                            Image(systemName: "sidebar.left")
-                        })
-                        Button(action: {}, label: {
-                            Image(systemName: "arrow.uturn.backward.circle")
-                        })
-                        Button(action: {}, label: {
-                            Image(systemName: "arrow.uturn.forward.circle")
-                        })
-                    }
-                    ToolbarItemGroup(placement: .navigationBarTrailing){
-                        Button(action: {}, label: {
-                            Image(systemName: "square.and.arrow.up")
-                        })
-                        Button(action: /*@START_MENU_TOKEN@*/{}/*@END_MENU_TOKEN@*/, label: {
-                            Image(systemName: "info.circle")
-                        })
-                        Button(action: {
-                            rightOffset.toggle()
-                        }, label: {
-                            Image(systemName: "sidebar.right")
-                        })
-                    }
-                }
-            }.navigationViewStyle(StackNavigationViewStyle())
-            .environmentObject(loading)
-            .environmentObject(propertyList)
-            .environmentObject(script)
-            .onAppear{
-                loading.loading = false
-            }
-        }else{
-            NavigationView{
-                ZStack{
-                    mainView(additional: 0)
-                    
-                    Drawer{
-                        ZStack{
-                            RoundedRectangle(cornerRadius: 12)
-                                .foregroundColor(Color(UIColor.systemBackground))
-                                .shadow(radius: 100)
-                            
-                            VStack{
-                                Spacer().frame(height: 12)
-                                Picker(selection: $controlButton, label: Text("")){
-                                    Text("Explorer").tag(0)
-                                    Text("Properties \(propertyList.name == "" ? "" : " - \(propertyList.name)")").tag(1)
+        VStack(spacing: 0) {
+            toolbar
+            Divider()
+            GeometryReader { geo in
+                HStack(spacing: 0) {
+                    VStack(spacing: 0) {
+                        panelHeader("Explorer")
+                        List {
+                            Section(header: Text("Workspace")) {
+                                ForEach(project.nodes.filter { $0.service == "Workspace" }) { node in
+                                    nodeRow(node)
                                 }
-                                .pickerStyle(SegmentedPickerStyle())
+                            }
+                            Section(header: Text("ServerScriptService")) {
+                                ForEach(project.nodes.filter { $0.service == "ServerScriptService" }) { node in
+                                    nodeRow(node)
+                                }
+                            }
+                        }.listStyle(PlainListStyle())
+                    }.frame(width: max(175, geo.size.width * 0.22))
+                    Divider()
+                    VStack(spacing: 0) {
+                        HStack {
+                            Text(project.name + "  •  Place").font(.system(size: 12, weight: .semibold))
+                            Spacer()
+                            Text("3D VIEW").font(.system(size: 10, weight: .bold)).foregroundColor(.secondary)
+                        }.padding(9).background(Color.black.opacity(0.12))
+                        StudioViewport(project: project)
+                    }
+                    Divider()
+                    inspector.frame(width: max(205, geo.size.width * 0.24))
+                }
+            }
+            bottomBar
+        }
+        .background(Color(red: 0.13, green: 0.14, blue: 0.16))
+        .preferredColorScheme(.dark)
+        .fileExporter(isPresented: $showExporter, document: RBXLXExportDocument(text: project.exportXML()), contentType: .rbxlx, defaultFilename: project.name + ".rbxlx") { _ in }
+        .sheet(isPresented: $showScript) {
+            NavigationView {
+                VStack(alignment: .leading) {
+                    Text("Script Source").font(.headline).padding(.horizontal)
+                    TextEditor(text: Binding(
+                        get: { selectedNode?.source ?? "" },
+                        set: { value in project.updateSelected { $0.source = value } }
+                    )).font(.system(.body, design: .monospaced))
+                }
+                .navigationBarTitle("Script Editor", displayMode: .inline)
+                .navigationBarItems(trailing: Button("Done") { showScript = false })
+            }.preferredColorScheme(.dark)
+        }
+    }
 
-                                switch(controlButton){
-                                    case 0:
-                                        mainListView(parsedArray: parsedArray, file: file)
-                                    default:
-                                        PropertyView()
-                                }
-                            }
-                            
-                            VStack(alignment: .center) {
-                                Spacer().frame(height: 4.0)
-                                RoundedRectangle(cornerRadius: 3.0)
-                                    .foregroundColor(.gray)
-                                    .frame(width: 30.0, height: 6.0)
-                                Spacer()
-                            }
-                        }.frame(height: 413)
-                    }
-                    .rest(at: .constant([100, 340]))
+    private var selectedNode: StudioNode? { project.nodes.first { $0.id == project.selectedID } }
+
+    private var toolbar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 15) {
+                Button("Done") { presentationMode.wrappedValue.dismiss() }
+                Divider().frame(height: 22)
+                ForEach(["Home", "Model", "Test", "View"], id: \.self) { tab in
+                    Button(tab) { project.activeTab = tab }
+                        .foregroundColor(project.activeTab == tab ? .white : .gray)
                 }
-                .edgesIgnoringSafeArea(.bottom)
-                .navigationBarTitle(fileName, displayMode: .inline)
-                .toolbar{
-                    ToolbarItemGroup(placement: .navigationBarLeading){
-                        Button(action:{presentationMode.wrappedValue.dismiss()}, label:{
-                            Text("Done")
-                        }).buttonStyle(PlainButtonStyle())
-                        Button(action: {}, label: {
-                            Image(systemName: "arrow.uturn.backward.circle")
-                        })
-                        Button(action: {}, label: {
-                            Image(systemName: "arrow.uturn.forward.circle")
-                        })
-                    }
-                    ToolbarItemGroup(placement: .navigationBarTrailing){
-                        Button(action: {}, label: {
-                            Image(systemName: "square.and.arrow.up")
-                        })
-                        Button(action: /*@START_MENU_TOKEN@*/{}/*@END_MENU_TOKEN@*/, label: {
-                            Image(systemName: "info.circle")
-                        })
-                    }
+                Divider().frame(height: 22)
+                Button { project.addPart() } label: { Label("Part", systemImage: "cube") }
+                Button { project.addScript(); showScript = true } label: { Label("Script", systemImage: "curlybraces") }
+                Button { showExporter = true } label: {
+                    Label("Export .RBXLX", systemImage: "square.and.arrow.up")
+                        .font(.system(size: 13, weight: .bold))
+                        .padding(.horizontal, 10).padding(.vertical, 7)
+                        .background(Color.blue).cornerRadius(6)
                 }
-            }
-            .navigationViewStyle(StackNavigationViewStyle())
-            .environmentObject(loading)
-            .environmentObject(propertyList)
-            .environmentObject(script)
-            .onAppear{
-                loading.loading = false
-            }
-            .onChange(of: propertyList.id){_ in
-                controlButton = 1
+            }.font(.system(size: 13, weight: .semibold)).padding(.horizontal, 12).padding(.vertical, 10)
+        }.background(Color(red: 0.10, green: 0.11, blue: 0.13))
+    }
+
+    private var inspector: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            panelHeader("Properties")
+            if let node = selectedNode {
+                Form {
+                    Section(header: Text("Instance")) {
+                        TextField("Name", text: Binding(get: { selectedNode?.name ?? "" }, set: { v in project.updateSelected { $0.name = v } }))
+                        HStack { Text("Class"); Spacer(); Text(node.className).foregroundColor(.secondary) }
+                    }
+                    if node.className == "Part" {
+                        Section(header: Text("Transform")) {
+                            numberField("Position X", value: \StudioNode.x)
+                            numberField("Position Y", value: \StudioNode.y)
+                            numberField("Position Z", value: \StudioNode.z)
+                        }
+                        Section(header: Text("Size")) {
+                            numberField("Width", value: \StudioNode.width)
+                            numberField("Height", value: \StudioNode.height)
+                            numberField("Depth", value: \StudioNode.depth)
+                            Toggle("Anchored", isOn: Binding(get: { selectedNode?.anchored ?? true }, set: { v in project.updateSelected { $0.anchored = v } }))
+                        }
+                    }
+                    if node.className == "Script" || node.className == "LocalScript" {
+                        Button("Edit Source") { showScript = true }
+                    }
+                    Button(role: .destructive) {
+                        project.nodes.removeAll { $0.id == node.id }
+                        project.selectedID = nil
+                    } label: { Label("Delete", systemImage: "trash") }
+                }.font(.system(size: 12))
+            } else {
+                Spacer()
+                Text("No Element Selected").font(.system(size: 15, weight: .semibold)).frame(maxWidth: .infinity)
+                Spacer()
             }
         }
     }
-}
 
-struct mainView: View{
-    let additional: CGFloat
-    
-    init(additional: CGFloat){
-        self.additional = additional
-    }
-    
-    var body: some View{
-        GeometryReader{ thisGeometry in
-            scriptView()
-                .frame(width: thisGeometry.size.width + 7 + additional)
+    private func numberField(_ title: String, value: WritableKeyPath<StudioNode, Double>) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            TextField("0", text: Binding(
+                get: { String(project.nodes.first(where: { $0.id == project.selectedID })?[keyPath: value] ?? 0) },
+                set: { text in if let v = Double(text) { project.updateSelected { $0[keyPath: value] = v } } }
+            )).keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(width: 70)
         }
     }
-}
 
-struct scriptView: View{
-    @EnvironmentObject var script: ScriptFile
-    @State var scriptEditable = ""
-    
-    var body: some View{
-        TextEditor(text: $scriptEditable)
-            .onAppear(){
-                scriptEditable = script.file
-            }
-            .onChange(of: script.file){_ in
-                scriptEditable = script.file
-            }
-            .environmentObject(script)
+    private func panelHeader(_ title: String) -> some View {
+        HStack { Text(title).font(.system(size: 12, weight: .bold)); Spacer(); Image(systemName: "ellipsis") }
+            .padding(10).background(Color.black.opacity(0.2))
     }
-}
 
-struct enviromentView: View{
-    var body: some View{
-        Text("Enviroment Placeholder")
+    private func nodeRow(_ node: StudioNode) -> some View {
+        Button { project.selectedID = node.id } label: {
+            HStack(spacing: 7) {
+                Image(systemName: node.className == "Script" ? "doc.text" : "cube")
+                    .foregroundColor(node.className == "Script" ? .orange : .blue)
+                Text(node.name).lineLimit(1)
+                Spacer()
+            }.font(.system(size: 12))
+                .padding(.vertical, 2)
+                .background(project.selectedID == node.id ? Color.blue.opacity(0.25) : Color.clear)
+        }.buttonStyle(PlainButtonStyle())
     }
-}
 
-struct EditingView_Previews: PreviewProvider {
-    static var previews: some View {
-        mainView(additional: 0)
+    private var bottomBar: some View {
+        HStack {
+            Text("Ready").foregroundColor(.green)
+            Spacer()
+            Text("\(project.nodes.count) instances")
+            Text("  •  iPad Studio")
+        }.font(.system(size: 10, weight: .medium)).padding(8).background(Color.black.opacity(0.25))
     }
 }
