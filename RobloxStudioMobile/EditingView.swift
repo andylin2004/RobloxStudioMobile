@@ -4,10 +4,11 @@ import SceneKit
 struct EditingView: View {
     @Environment(\.presentationMode) private var presentationMode
     @ObservedObject var project: StudioProject
-    @State private var panel = "Explorer"
     @State private var showExporter = false
     @State private var showScript = false
-    @State private var exportURL: URL?
+    @State private var showAnimationPanel = false
+
+    private var selectedNode: StudioNode? { project.selectedNode }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -15,32 +16,22 @@ struct EditingView: View {
             Divider()
             GeometryReader { geo in
                 HStack(spacing: 0) {
-                    VStack(spacing: 0) {
-                        panelHeader("Explorer")
-                        List {
-                            Section(header: Text("Workspace")) {
-                                ForEach(project.nodes.filter { $0.service == "Workspace" }) { node in
-                                    nodeRow(node)
-                                }
-                            }
-                            Section(header: Text("ServerScriptService")) {
-                                ForEach(project.nodes.filter { $0.service == "ServerScriptService" }) { node in
-                                    nodeRow(node)
-                                }
-                            }
-                        }.listStyle(PlainListStyle())
-                    }.frame(width: max(175, geo.size.width * 0.22))
+                    toolbox.frame(width: max(145, geo.size.width * 0.19))
                     Divider()
                     VStack(spacing: 0) {
                         HStack {
-                            Text(project.name + "  •  Place").font(.system(size: 12, weight: .semibold))
+                            Text(project.name + "  •  Workspace").font(.system(size: 12, weight: .semibold))
                             Spacer()
                             Text("3D VIEW").font(.system(size: 10, weight: .bold)).foregroundColor(.secondary)
                         }.padding(9).background(Color.black.opacity(0.12))
                         StudioViewport(project: project)
                     }
                     Divider()
-                    inspector.frame(width: max(205, geo.size.width * 0.24))
+                    VStack(spacing: 0) {
+                        explorer
+                        Divider()
+                        inspector
+                    }.frame(width: max(205, geo.size.width * 0.24))
                 }
             }
             bottomBar
@@ -50,41 +41,93 @@ struct EditingView: View {
         .fileExporter(isPresented: $showExporter, document: RBXLXExportDocument(text: project.exportXML()), contentType: .rbxlx, defaultFilename: project.name + ".rbxlx") { _ in }
         .sheet(isPresented: $showScript) {
             NavigationView {
-                VStack(alignment: .leading) {
-                    Text("Script Source").font(.headline).padding(.horizontal)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(selectedNode?.name ?? "Script Source").font(.headline).padding(.horizontal)
                     TextEditor(text: Binding(
                         get: { selectedNode?.source ?? "" },
                         set: { value in project.updateSelected { $0.source = value } }
                     )).font(.system(.body, design: .monospaced))
                 }
-                .navigationBarTitle("Script Editor", displayMode: .inline)
+                .navigationBarTitle("Luau Editor", displayMode: .inline)
                 .navigationBarItems(trailing: Button("Done") { showScript = false })
             }.preferredColorScheme(.dark)
         }
+        .sheet(isPresented: $showAnimationPanel) { animationSheet }
     }
-
-    private var selectedNode: StudioNode? { project.nodes.first { $0.id == project.selectedID } }
 
     private var toolbar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 15) {
+            HStack(spacing: 13) {
                 Button("Done") { presentationMode.wrappedValue.dismiss() }
-                Divider().frame(height: 22)
+                Divider().frame(height: 24)
                 ForEach(["Home", "Model", "Test", "View"], id: \.self) { tab in
                     Button(tab) { project.activeTab = tab }
                         .foregroundColor(project.activeTab == tab ? .white : .gray)
                 }
-                Divider().frame(height: 22)
-                Button { project.addPart() } label: { Label("Part", systemImage: "cube") }
-                Button { project.addScript(); showScript = true } label: { Label("Script", systemImage: "curlybraces") }
+                Divider().frame(height: 24)
+                Menu {
+                    Button("Block") { project.addPart(shape: "Block") }
+                    Button("Sphere") { project.addPart(shape: "Sphere") }
+                    Button("Cylinder") { project.addPart(shape: "Cylinder") }
+                    Button("Wedge") { project.addPart(shape: "Wedge") }
+                } label: { Label("Add Part", systemImage: "cube").font(.system(size: 13, weight: .semibold)) }
+                Menu {
+                    Button("Script") { project.addScript(kind: "Script"); showScript = true }
+                    Button("LocalScript") { project.addScript(kind: "LocalScript"); showScript = true }
+                    Button("ModuleScript") { project.addScript(kind: "ModuleScript"); showScript = true }
+                } label: { Label("Script", systemImage: "curlybraces").font(.system(size: 13, weight: .semibold)) }
+                Button { project.duplicateSelected() } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
+                    .disabled(selectedNode == nil)
+                Button { project.deleteSelected() } label: { Label("Delete", systemImage: "trash") }
+                    .disabled(selectedNode == nil)
+                Button { showAnimationPanel = true } label: { Label("Animation", systemImage: "figure.run") }
                 Button { showExporter = true } label: {
                     Label("Export .RBXLX", systemImage: "square.and.arrow.up")
                         .font(.system(size: 13, weight: .bold))
                         .padding(.horizontal, 10).padding(.vertical, 7)
                         .background(Color.blue).cornerRadius(6)
                 }
-            }.font(.system(size: 13, weight: .semibold)).padding(.horizontal, 12).padding(.vertical, 10)
+            }.font(.system(size: 13, weight: .semibold)).padding(.horizontal, 12).padding(.vertical, 9)
         }.background(Color(red: 0.10, green: 0.11, blue: 0.13))
+    }
+
+    private var toolbox: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            panelHeader("Toolbox")
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("CREATE").font(.system(size: 10, weight: .bold)).foregroundColor(.secondary)
+                    toolButton("Block", icon: "cube") { project.addPart(shape: "Block") }
+                    toolButton("Sphere", icon: "circle") { project.addPart(shape: "Sphere") }
+                    toolButton("Cylinder", icon: "cylinder") { project.addPart(shape: "Cylinder") }
+                    toolButton("Wedge", icon: "triangle") { project.addPart(shape: "Wedge") }
+                    Divider()
+                    Text("SCRIPTS").font(.system(size: 10, weight: .bold)).foregroundColor(.secondary)
+                    toolButton("Script", icon: "doc.text") { project.addScript(kind: "Script"); showScript = true }
+                    toolButton("LocalScript", icon: "iphone") { project.addScript(kind: "LocalScript"); showScript = true }
+                    toolButton("ModuleScript", icon: "shippingbox") { project.addScript(kind: "ModuleScript"); showScript = true }
+                    Divider()
+                    Text("EDIT").font(.system(size: 10, weight: .bold)).foregroundColor(.secondary)
+                    toolButton("Duplicate", icon: "plus.square.on.square") { project.duplicateSelected() }
+                    toolButton("Delete", icon: "trash") { project.deleteSelected() }
+                }.padding(10)
+            }
+        }.background(Color.black.opacity(0.12))
+    }
+
+    private var explorer: some View {
+        VStack(spacing: 0) {
+            panelHeader("Explorer")
+            List {
+                ForEach(project.services, id: \.self) { service in
+                    Section(header: Text(service).font(.system(size: 11, weight: .bold))) {
+                        ForEach(project.nodes.filter { $0.service == service }) { node in
+                            nodeRow(node)
+                        }
+                    }
+                }
+            }.listStyle(PlainListStyle())
+        }
     }
 
     private var inspector: some View {
@@ -93,47 +136,96 @@ struct EditingView: View {
             if let node = selectedNode {
                 Form {
                     Section(header: Text("Instance")) {
-                        TextField("Name", text: Binding(get: { selectedNode?.name ?? "" }, set: { v in project.updateSelected { $0.name = v } }))
+                        TextField("Name", text: Binding(get: { selectedNode?.name ?? "" }, set: { value in project.updateSelected { $0.name = value } }))
                         HStack { Text("Class"); Spacer(); Text(node.className).foregroundColor(.secondary) }
+                        if node.className == "Part" {
+                            Picker("Shape", selection: Binding(get: { selectedNode?.shape ?? "Block" }, set: { value in project.updateSelected { $0.shape = value } })) {
+                                Text("Block").tag("Block")
+                                Text("Sphere").tag("Sphere")
+                                Text("Cylinder").tag("Cylinder")
+                                Text("Wedge").tag("Wedge")
+                            }
+                        }
                     }
                     if node.className == "Part" {
                         Section(header: Text("Transform")) {
-                            numberField("Position X", value: \StudioNode.x)
-                            numberField("Position Y", value: \StudioNode.y)
-                            numberField("Position Z", value: \StudioNode.z)
+                            numberField("Position X", keyPath: \.x)
+                            numberField("Position Y", keyPath: \.y)
+                            numberField("Position Z", keyPath: \.z)
                         }
                         Section(header: Text("Size")) {
-                            numberField("Width", value: \StudioNode.width)
-                            numberField("Height", value: \StudioNode.height)
-                            numberField("Depth", value: \StudioNode.depth)
-                            Toggle("Anchored", isOn: Binding(get: { selectedNode?.anchored ?? true }, set: { v in project.updateSelected { $0.anchored = v } }))
+                            numberField("Width", keyPath: \.width)
+                            numberField("Height", keyPath: \.height)
+                            numberField("Depth", keyPath: \.depth)
+                            Toggle("Anchored", isOn: Binding(get: { selectedNode?.anchored ?? true }, set: { value in project.updateSelected { $0.anchored = value } }))
+                            Toggle("Can Collide", isOn: Binding(get: { selectedNode?.canCollide ?? true }, set: { value in project.updateSelected { $0.canCollide = value } }))
+                            numberField("Transparency", keyPath: \.transparency)
                         }
                     }
-                    if node.className == "Script" || node.className == "LocalScript" {
+                    if ["Script", "LocalScript", "ModuleScript"].contains(node.className) {
                         Button("Edit Source") { showScript = true }
                     }
-                    Button {
-                        project.nodes.removeAll { $0.id == node.id }
-                        project.selectedID = nil
-                    } label: { Label("Delete", systemImage: "trash").foregroundColor(.red) }
+                    Button(action: { project.deleteSelected() }) {
+                        Label("Delete Instance", systemImage: "trash").foregroundColor(.red)
+                    }
                 }.font(.system(size: 12))
             } else {
                 Spacer()
-                Text("No Element Selected").font(.system(size: 15, weight: .semibold)).frame(maxWidth: .infinity)
+                Text("Select an object").font(.system(size: 13, weight: .semibold)).frame(maxWidth: .infinity)
                 Spacer()
             }
         }
     }
 
-    private func numberField(_ title: String, value: WritableKeyPath<StudioNode, Double>) -> some View {
+    private var animationSheet: some View {
+        NavigationView {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Animation Editor").font(.title2.bold())
+                Text("Animation timeline workspace").foregroundColor(.secondary)
+                HStack {
+                    Text("00:00")
+                    Spacer()
+                    Text("00:10")
+                }.font(.caption.monospacedDigit())
+                GeometryReader { geometry in
+                    VStack(spacing: 8) {
+                        Rectangle().fill(Color.blue.opacity(0.7)).frame(height: 3)
+                        HStack(spacing: 4) {
+                            ForEach(0..<20, id: \.self) { index in
+                                RoundedRectangle(cornerRadius: 3).fill(index % 4 == 0 ? Color.orange : Color.gray.opacity(0.35)).frame(height: 28)
+                            }
+                        }
+                        Text("Add a compatible rig to begin creating animation tracks.")
+                            .font(.caption).foregroundColor(.secondary)
+                    }.frame(width: geometry.size.width, alignment: .leading)
+                }
+                Spacer()
+            }.padding()
+            .navigationBarTitle("Animation", displayMode: .inline)
+            .navigationBarItems(trailing: Button("Done") { showAnimationPanel = false })
+        }.preferredColorScheme(.dark)
+    }
+
+    private func numberField(_ title: String, keyPath: WritableKeyPath<StudioNode, Double>) -> some View {
         HStack {
             Text(title)
             Spacer()
             TextField("0", text: Binding(
-                get: { String(project.nodes.first(where: { $0.id == project.selectedID })?[keyPath: value] ?? 0) },
-                set: { text in if let v = Double(text) { project.updateSelected { $0[keyPath: value] = v } } }
-            )).keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(width: 70)
+                get: { String(project.selectedNode?[keyPath: keyPath] ?? 0) },
+                set: { text in if let value = Double(text) { project.updateSelected { $0[keyPath: keyPath] = value } } }
+            )).keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(width: 76)
         }
+    }
+
+    private func toolButton(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon).frame(width: 22)
+                Text(title).lineLimit(1)
+                Spacer(minLength: 0)
+            }.font(.system(size: 12, weight: .medium)).padding(8)
+                .background(Color.white.opacity(0.06)).cornerRadius(5)
+        }.buttonStyle(PlainButtonStyle())
     }
 
     private func panelHeader(_ title: String) -> some View {
@@ -144,11 +236,11 @@ struct EditingView: View {
     private func nodeRow(_ node: StudioNode) -> some View {
         Button { project.selectedID = node.id } label: {
             HStack(spacing: 7) {
-                Image(systemName: node.className == "Script" ? "doc.text" : "cube")
-                    .foregroundColor(node.className == "Script" ? .orange : .blue)
+                Image(systemName: node.className.contains("Script") ? "doc.text" : "cube")
+                    .foregroundColor(node.className.contains("Script") ? .orange : .blue)
                 Text(node.name).lineLimit(1)
                 Spacer()
-            }.font(.system(size: 12))
+            }.font(.system(size: 11))
                 .padding(.vertical, 2)
                 .background(project.selectedID == node.id ? Color.blue.opacity(0.25) : Color.clear)
         }.buttonStyle(PlainButtonStyle())
@@ -159,7 +251,7 @@ struct EditingView: View {
             Text("Ready").foregroundColor(.green)
             Spacer()
             Text("\(project.nodes.count) instances")
-            Text("  •  iPad Studio")
+            Text(" • iPad Studio")
         }.font(.system(size: 10, weight: .medium)).padding(8).background(Color.black.opacity(0.25))
     }
 }
