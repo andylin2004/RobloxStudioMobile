@@ -27,6 +27,20 @@ final class StudioProject: ObservableObject, Identifiable {
     @Published var nodes: [StudioNode] = []
     @Published var selectedID: UUID?
     @Published var activeTab = "Home"
+    @Published var cameraTargetX: Double = 0
+    @Published var cameraTargetZ: Double = 0
+    @Published var cameraYaw: Double = 0.735
+    @Published var cameraPitch: Double = 0
+
+    func moveViewport(_ x: Double, _ z: Double) {
+        cameraTargetX += x
+        cameraTargetZ += z
+    }
+
+    func rotateViewport(_ x: Double, _ y: Double) {
+        cameraYaw += x
+        cameraPitch = min(0.85, max(-0.45, cameraPitch + y))
+    }
 
     let services = ["Workspace", "Players", "Lighting", "ReplicatedStorage", "ServerScriptService", "ServerStorage", "StarterGui", "StarterPack", "StarterPlayer", "SoundService", "Teams"]
 
@@ -169,8 +183,10 @@ struct StudioViewport: UIViewRepresentable {
         camera.zFar = 10000
         camera.fieldOfView = 55
         cameraNode.camera = camera
-        cameraNode.position = SCNVector3(38, 32, 42)
-        cameraNode.look(at: SCNVector3(0, 0, 0))
+        let distance: Double = 57
+        let horizontal = distance * cos(project.cameraPitch)
+        cameraNode.position = SCNVector3(Float(project.cameraTargetX + sin(project.cameraYaw) * horizontal), Float(32 + sin(project.cameraPitch) * distance), Float(project.cameraTargetZ + cos(project.cameraYaw) * horizontal))
+        cameraNode.look(at: SCNVector3(Float(project.cameraTargetX), 0, Float(project.cameraTargetZ)))
         scene.rootNode.addChildNode(cameraNode)
 
         let ambient = SCNNode()
