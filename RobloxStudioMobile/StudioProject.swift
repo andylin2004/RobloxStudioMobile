@@ -49,8 +49,7 @@ final class StudioProject: ObservableObject {
     }
 
     func addScript() {
-        let n = StudioNode(name: "Script", className: "Script", service: "ServerScriptService",
-                           source: "-- Your Roblox Lua code goes here\nprint(\"Hello from RobloxStudioMobile!\")")
+        let n = StudioNode(name: "Script", className: "Script", source: "-- Your Roblox Lua code goes here\nprint(\"Hello from RobloxStudioMobile!\")", service: "ServerScriptService")
         nodes.append(n)
         selectedID = n.id
     }
