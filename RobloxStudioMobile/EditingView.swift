@@ -112,10 +112,10 @@ struct EditingView: View {
                     if node.className == "Script" || node.className == "LocalScript" {
                         Button("Edit Source") { showScript = true }
                     }
-                    Button(role: .destructive) {
+                    Button {
                         project.nodes.removeAll { $0.id == node.id }
                         project.selectedID = nil
-                    } label: { Label("Delete", systemImage: "trash") }
+                    } label: { Label("Delete", systemImage: "trash").foregroundColor(.red) }
                 }.font(.system(size: 12))
             } else {
                 Spacer()
