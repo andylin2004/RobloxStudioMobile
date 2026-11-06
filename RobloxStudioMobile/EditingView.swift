@@ -125,7 +125,7 @@ struct EditingView: View {
             }.padding(.horizontal, 9)
             Text(title).font(.system(size: 9)).foregroundColor(.secondary)
         }.padding(.horizontal, 7)
-            .overlay(alignment: .trailing) { Rectangle().fill(Color.gray.opacity(0.22)).frame(width: 1).padding(.vertical, 5) }
+            .overlay(Rectangle().fill(Color.gray.opacity(0.22)).frame(width: 1).padding(.vertical, 5), alignment: .trailing)
     }
 
     private var toolbox: some View {
@@ -315,11 +315,11 @@ struct EditingView: View {
     private var commandBar: some View {
         HStack(spacing: 8) {
             Image(systemName: "chevron.right").font(.system(size: 10, weight: .bold))
-            TextField("Run a command", text: $commandText).font(.system(size: 12)).onSubmit { commandText = "" }
+            TextField("Run a command", text: $commandText).font(.system(size: 12))
             Spacer()
         }.padding(.horizontal, 10).padding(.vertical, 9)
             .background(Color(red: 0.97, green: 0.98, blue: 0.99))
-            .overlay(alignment: .top) { Rectangle().fill(Color.gray.opacity(0.25)).frame(height: 1) }
+            .overlay(Rectangle().fill(Color.gray.opacity(0.25)).frame(height: 1), alignment: .top)
     }
 }
 
