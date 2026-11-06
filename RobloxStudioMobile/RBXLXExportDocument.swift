@@ -196,7 +196,7 @@ extension StudioProject {
         parentPayload.append(contentsOf: refBytes(childIDs))
         parentPayload.append(contentsOf: refBytes(parentIDs))
         appendChunk("PRNT", payload: parentPayload, to: &output)
-        appendChunk("END.", payload: Data("</roblox>".utf8), to: &output)
+        appendChunk("END\0", payload: Data("</roblox>".utf8), to: &output)
         return output
     }
 }
