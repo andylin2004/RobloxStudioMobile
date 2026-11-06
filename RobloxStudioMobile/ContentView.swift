@@ -24,7 +24,7 @@ struct ContentView: View {
                         VStack(spacing: 12) {
                             Image(systemName: "folder").font(.system(size: 42)).foregroundColor(.secondary)
                             Text("Your projects will appear here").foregroundColor(.secondary)
-                            Button("Create a project") { selectedSection = "New" }.buttonStyle(.borderedProminent)
+                            Button { selectedSection = "New" } label: { Text("Create a project").font(.system(size: 14, weight: .semibold)).foregroundColor(.white).padding(.horizontal, 16).padding(.vertical, 10).background(Color.blue).cornerRadius(8) }.buttonStyle(PlainButtonStyle())
                         }.frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
                         VStack { Image(systemName: "clock").font(.largeTitle); Text("No recent projects yet").foregroundColor(.secondary) }
