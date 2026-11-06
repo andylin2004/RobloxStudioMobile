@@ -28,7 +28,7 @@ struct EditingView: View {
                             StudioViewport(project: project)
                             HStack(alignment: .bottom) {
                                 TouchJoystick(title: "MOVE") { vector in
-                                    project.moveViewport(-Double(vector.dx) * 0.42, Double(vector.dy) * 0.42)
+                                    project.moveViewport(-Double(vector.x) * 0.42, Double(vector.y) * 0.42)
                                 }
                                 Spacer()
                                 TouchJoystick(title: "LOOK") { vector in
