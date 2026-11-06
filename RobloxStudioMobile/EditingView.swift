@@ -23,7 +23,7 @@ struct EditingView: View {
                             Text(project.name + "  •  Workspace").font(.system(size: 12, weight: .semibold))
                             Spacer()
                             Text("3D VIEW").font(.system(size: 10, weight: .bold)).foregroundColor(.secondary)
-                        }.padding(9).background(Color.black.opacity(0.12))
+                        }.padding(9).background(Color(red: 0.94, green: 0.95, blue: 0.97))
                         ZStack(alignment: .bottom) {
                             StudioViewport(project: project)
                             HStack(alignment: .bottom) {
@@ -99,7 +99,7 @@ struct EditingView: View {
                         .background(Color.blue).cornerRadius(6)
                 }
             }.font(.system(size: 13, weight: .semibold)).padding(.horizontal, 12).padding(.vertical, 9)
-        }.background(Color(red: 0.10, green: 0.11, blue: 0.13))
+        }.background(Color(red: 0.96, green: 0.97, blue: 0.99))
     }
 
     private var toolbox: some View {
@@ -241,7 +241,7 @@ struct EditingView: View {
 
     private func panelHeader(_ title: String) -> some View {
         HStack { Text(title).font(.system(size: 12, weight: .bold)); Spacer(); Image(systemName: "ellipsis") }
-            .padding(10).background(Color.black.opacity(0.2))
+            .padding(10).background(Color(red: 0.91, green: 0.93, blue: 0.96))
     }
 
     private func nodeRow(_ node: StudioNode) -> some View {
@@ -263,7 +263,7 @@ struct EditingView: View {
             Spacer()
             Text("\(project.nodes.count) instances")
             Text(" • iPad Studio")
-        }.font(.system(size: 10, weight: .medium)).padding(8).background(Color.black.opacity(0.25))
+        }.font(.system(size: 10, weight: .medium)).padding(8).background(Color(red: 0.94, green: 0.95, blue: 0.97))
     }
 }
 
