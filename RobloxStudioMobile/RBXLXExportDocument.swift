@@ -2,7 +2,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct RBXLXExportDocument: FileDocument {
-    static var readableContentTypes: [UTType] { [.rbxlx] }
+    static var readableContentTypes: [UTType] { [UTType("com.andylin.robloxstudiomobile.RobloxGameFile") ?? .xml] }
     var text: String
 
     init(text: String) { self.text = text }
@@ -20,11 +20,5 @@ struct RBXLXExportDocument: FileDocument {
             throw CocoaError(.fileWriteInapplicableStringEncoding)
         }
         return FileWrapper(regularFileWithContents: data)
-    }
-}
-
-extension UTType {
-    static var rbxlx: UTType {
-        UTType(filenameExtension: "rbxlx", conformingTo: .xml) ?? .xml
     }
 }
