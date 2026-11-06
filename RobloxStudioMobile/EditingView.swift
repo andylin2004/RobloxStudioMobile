@@ -1,5 +1,6 @@
 import SwiftUI
 import SceneKit
+import UniformTypeIdentifiers
 
 struct EditingView: View {
     @Environment(\.presentationMode) private var presentationMode
@@ -177,7 +178,7 @@ struct EditingView: View {
     private var toolboxItems: [(String, String, Color)] {
         [("Block", "cube.fill", .gray), ("Sphere", "circle.fill", .gray), ("Cylinder", "cylinder.fill", .gray),
          ("Wedge", "triangle.fill", .gray), ("Corner Wedge", "triangle", .gray), ("Truss", "square.grid.3x3", .gray),
-         ("Tree", "tree.fill", .green), ("House", "house.fill", .brown), ("Car", "car.fill", .red),
+         ("Tree", "tree.fill", .green), ("House", "house.fill", Color(red: 0.55, green: 0.34, blue: 0.20)), ("Car", "car.fill", .red),
          ("R6 Rig", "figure.stand", .blue), ("R15 Rig", "figure.walk", .green), ("NPC", "person.fill", .orange)]
     }
 
