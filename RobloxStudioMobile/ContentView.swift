@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var selectedSection = "New"
-    @State private var showingEditor = false
     @State private var project: StudioProject? = nil
     private let templates = ["Baseplate", "Classic Baseplate", "Flat Terrain", "Obby", "Starting Place", "Village", "Castle", "City"]
 
@@ -36,8 +35,8 @@ struct ContentView: View {
             .navigationBarHidden(true)
         }
         .navigationViewStyle(StackNavigationViewStyle())
-        .fullScreenCover(isPresented: $showingEditor) {
-            if let project = project { EditingView(project: project) }
+        .fullScreenCover(item: $project) { selectedProject in
+            EditingView(project: selectedProject)
         }
         .preferredColorScheme(.dark)
     }
@@ -91,7 +90,6 @@ struct ContentView: View {
                     ForEach(templates, id: \.self) { template in
                         Button {
                             project = StudioProject(name: template == "Baseplate" ? "Place1" : template, template: template == "Classic Baseplate" ? "Baseplate" : template)
-                            showingEditor = true
                         } label: {
                             VStack(alignment: .leading, spacing: 7) {
                                 ZStack {
