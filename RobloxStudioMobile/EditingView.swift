@@ -24,7 +24,18 @@ struct EditingView: View {
                             Spacer()
                             Text("3D VIEW").font(.system(size: 10, weight: .bold)).foregroundColor(.secondary)
                         }.padding(9).background(Color.black.opacity(0.12))
-                        StudioViewport(project: project)
+                        ZStack(alignment: .bottom) {
+                            StudioViewport(project: project)
+                            HStack(alignment: .bottom) {
+                                TouchJoystick(title: "MOVE") { vector in
+                                    project.moveViewport(-Double(vector.dx) * 0.42, Double(vector.dy) * 0.42)
+                                }
+                                Spacer()
+                                TouchJoystick(title: "LOOK") { vector in
+                                    project.rotateViewport(Double(vector.dx) * 0.035, Double(vector.dy) * 0.025)
+                                }
+                            }.padding(18)
+                        }
                     }
                     Divider()
                     VStack(spacing: 0) {
@@ -36,8 +47,8 @@ struct EditingView: View {
             }
             bottomBar
         }
-        .background(Color(red: 0.13, green: 0.14, blue: 0.16))
-        .preferredColorScheme(.dark)
+        .background(Color(red: 0.91, green: 0.93, blue: 0.96))
+        .preferredColorScheme(.light)
         .fileExporter(isPresented: $showExporter, document: RBXLXExportDocument(text: project.exportXML()), contentType: .rbxlx, defaultFilename: project.name + ".rbxlx") { _ in }
         .sheet(isPresented: $showScript) {
             NavigationView {
@@ -253,5 +264,31 @@ struct EditingView: View {
             Text("\(project.nodes.count) instances")
             Text(" • iPad Studio")
         }.font(.system(size: 10, weight: .medium)).padding(8).background(Color.black.opacity(0.25))
+    }
+}
+
+private struct TouchJoystick: View {
+    let title: String
+    let onMove: (CGPoint) -> Void
+    @State private var offset: CGSize = .zero
+    var body: some View {
+        VStack(spacing: 4) {
+            ZStack {
+                Circle().fill(Color.black.opacity(0.34)).overlay(Circle().stroke(Color.white.opacity(0.65), lineWidth: 2)).frame(width: 104, height: 104)
+                Circle().stroke(Color.white.opacity(0.24), lineWidth: 1).frame(width: 64, height: 64)
+                Circle().fill(Color.white.opacity(0.78)).overlay(Circle().stroke(Color.black.opacity(0.16), lineWidth: 1)).frame(width: 42, height: 42).shadow(color: .black.opacity(0.25), radius: 4, y: 2).offset(offset)
+            }
+            Text(title).font(.system(size: 9, weight: .bold)).foregroundColor(.white).shadow(color: .black.opacity(0.8), radius: 2)
+        }
+        .contentShape(Rectangle())
+        .gesture(DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                let radius: CGFloat = 38
+                let dx = max(-1, min(1, value.translation.width / radius))
+                let dy = max(-1, min(1, value.translation.height / radius))
+                offset = CGSize(width: dx * radius, height: dy * radius)
+                onMove(CGPoint(x: dx, y: dy))
+            }
+            .onEnded { _ in offset = .zero; onMove(.zero) })
     }
 }
