@@ -17,7 +17,6 @@ concurrency:
 jobs:
   build-ios:
     name: Build Project for iPhone and iPad
-    # Using your specified custom/private runner label
     runs-on: macos-26-intel
     timeout-minutes: 120
     env:
@@ -48,20 +47,21 @@ jobs:
           fi
           PROJECT_NAME=$(basename "$XCODEPROJ" .xcodeproj)
           
-          # Dynamically extract the first available build target
-          TARGET_NAME=$(xcodebuild -list -project "$XCODEPROJ" | awk '/Targets:/ {flag=1; next} /Build Configurations:/ {flag=0} flag' | sed 's/^[[:space:]]*//' | grep -v '^$' | head -n 1)
-          if [ -z "$TARGET_NAME" ]; then
-            echo "::error::No build targets found in $XCODEPROJ."
-            exit 1
+          # Dynamically extract the first available Scheme instead of Target
+          SCHEME_NAME=$(xcodebuild -list -project "$XCODEPROJ" | awk '/Schemes:/ {flag=1; next} /^$/ {flag=0} flag' | sed 's/^[[:space:]]*//' | grep -v '^$' | head -n 1)
+          
+          # Fallback to project name if no scheme is parsed explicitly
+          if [ -z "$SCHEME_NAME" ]; then
+            SCHEME_NAME="$PROJECT_NAME"
           fi
           
           echo "Found Project: $XCODEPROJ"
-          echo "Found Target: $TARGET_NAME"
+          echo "Found Scheme: $SCHEME_NAME"
           
           # Save variables for subsequent steps
           echo "xcodeproj=$XCODEPROJ" >> $GITHUB_OUTPUT
           echo "project_name=$PROJECT_NAME" >> $GITHUB_OUTPUT
-          echo "target=$TARGET_NAME" >> $GITHUB_OUTPUT
+          echo "scheme=$SCHEME_NAME" >> $GITHUB_OUTPUT
 
       - name: Show Xcode configuration
         run: |
@@ -72,9 +72,10 @@ jobs:
       - name: Compile iOS target
         run: |
           set -euo pipefail
+          # Swapped -target to -scheme to satisfy -derivedDataPath rules
           xcodebuild \
             -project "${{ steps.detect.outputs.xcodeproj }}" \
-            -target "${{ steps.detect.outputs.target }}" \
+            -scheme "${{ steps.detect.outputs.scheme }}" \
             -configuration Release \
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
@@ -87,8 +88,10 @@ jobs:
       - name: Package and verify unsigned IPA
         run: |
           set -euo pipefail
-          APP="$DERIVED_DATA/Build/Products/Release-iphoneos/${{ steps.detect.outputs.project_name }}.app"
-          if [ ! -d "$APP" ]; then
+          # Find any produced .app file dynamically inside the configuration output directory
+          APP=$(find "$DERIVED_DATA/Build/Products/Release-iphoneos" -name "*.app" -maxdepth 1 | head -n 1)
+          
+          if [ -z "$APP" ] || [ ! -d "$APP" ]; then
             echo "::error::Application bundle (.app) was not produced."
             find "$DERIVED_DATA/Build/Products" -maxdepth 4 -print || true
             exit 1
@@ -99,15 +102,12 @@ jobs:
           
           rm -rf build/ipa build/${{ steps.detect.outputs.project_name }}-unsigned.ipa
           mkdir -p build/ipa/Payload
-          ditto "$APP" build/ipa/Payload/${{ steps.detect.outputs.project_name }}.app
+          ditto "$APP" build/ipa/Payload/$(basename "$APP")
           
           (cd build/ipa && /usr/bin/zip -qry ../${{ steps.detect.outputs.project_name }}-unsigned.ipa Payload)
           /usr/bin/unzip -tq build/${{ steps.detect.outputs.project_name }}-unsigned.ipa
           test -s build/${{ steps.detect.outputs.project_name }}-unsigned.ipa
           shasum -a 256 build/${{ steps.detect.outputs.project_name }}-unsigned.ipa
-          
-          # Store the filename for the upload step
-          echo "${{ steps.detect.outputs.project_name }}-unsigned.ipa" > build/filename.txt
 
       - name: Upload unsigned IPA artifact
         uses: actions/upload-artifact@v4
