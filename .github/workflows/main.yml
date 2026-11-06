@@ -1,0 +1,68 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: # Allows manually triggering the build from the GitHub Actions tab
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Xcode Version
+      run: |
+        # Use the latest stable Xcode available on the runner
+        sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+        xcodebuild -version
+
+    - name: Create ExportOptions.plist
+      run: |
+        cat <<EOF > ExportOptions.plist
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://apple.com">
+        <plist version="1.0">
+        <dict>
+            <key>method</key>
+            <string>development</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>compileBitcode</key>
+            <false/>
+            <key>destination</key>
+            <string>export</string>
+        </dict>
+        </plist>
+        EOF
+
+    - name: Build Archive
+      run: |
+        xcodebuild archive \
+          -project RobloxStudioMobile.xcodeproj \
+          -scheme RobloxStudioMobile \
+          -destination 'generic/platform=iOS' \
+          -archivePath ./build/RobloxStudioMobile.xcarchive \
+          CODE_SIGNING_ALLOWED=NO \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGN_IDENTITY=""
+
+    - name: Export IPA (Unsigned)
+      run: |
+        xcodebuild -exportArchive \
+          -archivePath ./build/RobloxStudioMobile.xcarchive \
+          -exportOptionsPlist ExportOptions.plist \
+          -exportPath ./build/OutputIPA \
+          CODE_SIGNING_ALLOWED=NO \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGN_IDENTITY=""
+
+    - name: Upload IPA Artifact
+      uses: actions/artifacts@v4
+      with:
+        name: RobloxStudioMobile-Unsigned-IPA
+        path: ./build/OutputIPA/*.ipa
