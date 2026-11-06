@@ -21,7 +21,8 @@ struct StudioNode: Identifiable, Codable, Equatable {
     var service: String = "Workspace"
 }
 
-final class StudioProject: ObservableObject {
+final class StudioProject: ObservableObject, Identifiable {
+    let id = UUID()
     @Published var name: String
     @Published var nodes: [StudioNode] = []
     @Published var selectedID: UUID?
