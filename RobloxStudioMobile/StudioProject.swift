@@ -173,7 +173,7 @@ struct StudioViewport: UIViewRepresentable {
         for item in project.nodes where item.className == "Part" {
             let geometry: SCNGeometry
             switch item.shape {
-            case "Sphere": geometry = SCNSphere(radius: CGFloat(max(item.width, item.height, item.depth) / 2))
+            case "Sphere": geometry = SCNSphere(radius: CGFloat(max(item.width, max(item.height, item.depth)) / 2))
             case "Cylinder": geometry = SCNCylinder(radius: CGFloat(item.width / 2), height: CGFloat(item.height))
             case "Wedge": geometry = SCNPyramid(width: CGFloat(item.width), height: CGFloat(item.height), length: CGFloat(item.depth))
             default: geometry = SCNBox(width: CGFloat(item.width), height: CGFloat(item.height), length: CGFloat(item.depth), chamferRadius: 0.04)
