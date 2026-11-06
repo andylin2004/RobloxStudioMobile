@@ -1,181 +1,112 @@
-//
-//  ContentView.swift
-//  RobloxStudioMobile
-//
-//  Created by Andy Lin on 3/28/21.
-//
-
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject var loading = LoadingFile()
-    @Environment(\.horizontalSizeClass) var sizeClass
-    
+    @State private var selectedSection = "New"
+    @State private var showingEditor = false
+    @State private var project: StudioProject? = nil
+    private let templates = ["Baseplate", "Classic Baseplate", "Flat Terrain", "Obby", "Starting Place", "Village", "Castle", "City"]
+
     var body: some View {
-        ZStack{
-            NavigationView{
-                if sizeClass == .regular{
-                    List{
-                        NavigationLink(destination: ExploreView()){
-                            Label("Explore", systemImage: "house")
-                        }
-                        NavigationLink(destination: FileView()){
-                            Label("Files", systemImage: "folder")
-                        }
-                        NavigationLink(
-                            destination: SettingView(),
-                            label: {
-                                Label("Settings", systemImage: "gear")
-                            })
-                        Section(header: Text("Dev Only")){
-                            NavigationLink(
-                                destination: EditingView(file: "", fileName: "")
-                                    .navigationBarHidden(true),
-                                label: {
-                                    Text("Dev")
-                                })
-                        }
-                        Section(header: Text("Favorites")){
-                            
-                        }
+        NavigationView {
+            HStack(spacing: 0) {
+                sidebar
+                VStack(spacing: 0) {
+                    HStack {
+                        Text("FILE").font(.system(size: 13, weight: .bold))
+                        Spacer()
+                        Text("RobloxStudioMobile").font(.system(size: 13, weight: .semibold)).foregroundColor(.secondary)
                     }
-                    .listStyle(SidebarListStyle())
-                    .navigationTitle("Home")
-                    .toolbar{
-                        EditButton()
-                    }
-                }else{
-                    List{
-                        NavigationLink(destination: ExploreView()){
-                            Label("Explore", systemImage: "house")
-                        }
-                        NavigationLink(destination: FileView()){
-                            Label("Files", systemImage: "folder")
-                        }
-                        NavigationLink(
-                            destination: SettingView(),
-                            label: {
-                                Label("Settings", systemImage: "gear")
-                            })
-                        Section(header: Text("Dev Only")){
-                            NavigationLink(
-                                destination: EditingView(file: "", fileName: "")
-                                    .navigationBarHidden(true),
-                                label: {
-                                    Text("Dev")
-                                })
-                        }
-                        Section(header: Text("Favorites")){
-                            
-                        }
-                    }
-                    .listStyle(InsetGroupedListStyle())
-                    .navigationTitle("Home")
-                    .toolbar{
-                        EditButton()
-                    }
-                }
-                ExploreView()
-            }
-            .saturation(loading.loading ? 0.2 : 1)
-            ZStack{
-                Rectangle()
-                    .opacity(0.3)
-                    .ignoresSafeArea()
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    .scaleEffect(x: 3, y: 3, anchor: /*@START_MENU_TOKEN@*/.center/*@END_MENU_TOKEN@*/)
-                    .frame(width: 100, height: 100, alignment: /*@START_MENU_TOKEN@*/.center/*@END_MENU_TOKEN@*/)
-                    .background(Color.black)
-                    .opacity(0.5)
-                    .clipShape(RoundedRectangle(cornerRadius: 25.0))
-            }.opacity(loading.loading ? 1 : 0)
-        }
-        .environmentObject(self.loading)
-    }
-}
-
-struct ExploreView: View{
-    var body: some View{
-        Text("Explore placeholder")
-            .navigationTitle("Explore")
-    }
-}
-
-struct FileView: View{
-    @State var isImporting = false
-    @State var file = ""
-    @State var fileName = ""
-    @State var editorShown = false
-    @State var alertShown = false
-    @EnvironmentObject var loading: LoadingFile
-    
-    var body: some View{
-        Text("Files placeholder")
-            .navigationTitle("Files")
-            .toolbar{
-                ToolbarItem(placement: .navigationBarTrailing){
-                    Menu{
-                        Button(
-                            action: {editorShown.toggle()},
-                            label: {
-                                Label("Add New", systemImage: "doc.badge.plus")
-                            }
-                        )
-                        Button(
-                            action: {isImporting = true},
-                            label: {Label("Import from Files", systemImage: "square.and.arrow.down")
-                            }
-                        )
-                    }
-                    label: {
-                        Image(systemName: "plus")
-                    }
-                }
-            }
-            .environmentObject(self.loading)
-            .fullScreenCover(isPresented: $editorShown, content: {EditingView(file: file, fileName: fileName)})
-            .fileImporter(
-                isPresented: $isImporting,
-                allowedContentTypes: [.rbxlx],
-                allowsMultipleSelection: false
-            ) { result in
-                do {
-                    loading.loading = true
-                    guard let selectedFile: URL = try result.get().first else {
-                        loading.loading = false
-                        return }
-                    if selectedFile.startAccessingSecurityScopedResource() {
-                        guard let input = String(data: try Data(contentsOf: selectedFile), encoding: .utf8) else { return }
-                        defer { selectedFile.stopAccessingSecurityScopedResource() }
-                        file = input
-                        fileName = (selectedFile.description as NSString).lastPathComponent.removingPercentEncoding!
-                        print("now loading")
-                        editorShown.toggle()
+                    .padding(.horizontal, 22).padding(.vertical, 15)
+                    Divider()
+                    if selectedSection == "New" {
+                        templatePage
+                    } else if selectedSection == "My Games" {
+                        VStack(spacing: 12) {
+                            Image(systemName: "folder").font(.system(size: 42)).foregroundColor(.secondary)
+                            Text("Your projects will appear here").foregroundColor(.secondary)
+                            Button("Create a project") { selectedSection = "New" }.buttonStyle(.borderedProminent)
+                        }.frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
-                        // Handle denied access
-                        loading.loading = false
+                        VStack { Image(systemName: "clock").font(.largeTitle); Text("No recent projects yet").foregroundColor(.secondary) }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
-                } catch {
-                    // Handle failure.
-                    print("Unable to read file contents")
-                    print(error.localizedDescription)
-                    loading.loading = false
                 }
             }
-            .environmentObject(loading)
+            .background(Color(red: 0.12, green: 0.13, blue: 0.15))
+            .navigationBarHidden(true)
+        }
+        .navigationViewStyle(StackNavigationViewStyle())
+        .fullScreenCover(isPresented: $showingEditor) {
+            if let project = project { EditingView(project: project) }
+        }
+        .preferredColorScheme(.dark)
     }
-}
 
-struct SettingView: View{
-    var body: some View{
-        Text("Settings placeholder")
-            .navigationTitle("Settings")
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("STUDIO").font(.system(size: 11, weight: .bold)).foregroundColor(.gray).padding(.horizontal, 14).padding(.top, 24)
+            sidebarButton("New", icon: "plus.square.fill")
+            sidebarButton("My Games", icon: "gamecontroller.fill")
+            sidebarButton("Recent", icon: "clock")
+            sidebarButton("Archive", icon: "archivebox")
+            Spacer()
+            sidebarButton("Settings", icon: "gearshape")
+        }
+        .frame(width: 112)
+        .background(Color(red: 0.09, green: 0.10, blue: 0.12))
     }
-}
 
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
+    private func sidebarButton(_ title: String, icon: String) -> some View {
+        Button { selectedSection = title } label: {
+            VStack(spacing: 6) {
+                Image(systemName: icon).font(.system(size: 20))
+                Text(title).font(.system(size: 11, weight: .medium))
+            }
+            .foregroundColor(selectedSection == title ? .white : .gray)
+            .frame(maxWidth: .infinity).padding(.vertical, 12)
+            .background(selectedSection == title ? Color.blue.opacity(0.55) : Color.clear)
+            .cornerRadius(8)
+        }.buttonStyle(PlainButtonStyle()).padding(.horizontal, 8)
+    }
+
+    private var templatePage: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack {
+                    Text("All Templates").font(.system(size: 24, weight: .bold))
+                    Spacer()
+                    Text("Choose a starting place").font(.system(size: 13)).foregroundColor(.secondary)
+                }
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(["All Templates", "Theme", "Gameplay"], id: \.self) { tab in
+                            Text(tab).font(.system(size: 13, weight: .semibold))
+                                .padding(.horizontal, 15).padding(.vertical, 9)
+                                .background(tab == "All Templates" ? Color.blue : Color.gray.opacity(0.18))
+                                .cornerRadius(6)
+                        }
+                    }
+                }
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 16) {
+                    ForEach(templates, id: \.self) { template in
+                        Button {
+                            project = StudioProject(name: template == "Baseplate" ? "Place1" : template, template: template == "Classic Baseplate" ? "Baseplate" : template)
+                            showingEditor = true
+                        } label: {
+                            VStack(alignment: .leading, spacing: 7) {
+                                ZStack {
+                                    LinearGradient(gradient: Gradient(colors: [Color(red: 0.35, green: 0.65, blue: 0.88), Color(red: 0.23, green: 0.31, blue: 0.43)]), startPoint: .top, endPoint: .bottom)
+                                    Image(systemName: template == "Obby" ? "square.stack.3d.up.fill" : "cube.transparent")
+                                        .font(.system(size: 38)).foregroundColor(.white.opacity(0.9))
+                                    Image(systemName: "square.grid.3x3").font(.system(size: 45)).foregroundColor(.white.opacity(0.22)).offset(y: 24)
+                                }.frame(height: 100).clipped().cornerRadius(5)
+                                Text(template).font(.system(size: 13, weight: .semibold)).foregroundColor(.white)
+                            }
+                            .padding(8).background(Color.white.opacity(0.07)).cornerRadius(7)
+                        }.buttonStyle(PlainButtonStyle())
+                    }
+                }
+            }.padding(22)
+        }
     }
 }
