@@ -184,7 +184,7 @@ struct StudioViewport: UIViewRepresentable {
         let sunLight = SCNLight()
         sunLight.type = .directional
         sunLight.intensity = 900
-        sunLight.eulerAngles = SCNVector3(-Float.pi / 3, Float.pi / 4, 0)
+        sun.eulerAngles = SCNVector3(-Float.pi / 3, Float.pi / 4, 0)
         sun.light = sunLight
         scene.rootNode.addChildNode(sun)
 
