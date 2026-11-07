@@ -140,8 +140,9 @@ struct StudioViewport: UIViewRepresentable {
     func makeUIView(context: Context) -> SCNView {
         let view = SCNView()
         view.backgroundColor = UIColor(red: 0.43, green: 0.62, blue: 0.78, alpha: 1)
-        view.isPlaying = true
-        view.rendersContinuously = true
+        view.isPlaying = false
+        view.rendersContinuously = false
+        view.preferredFramesPerSecond = 60
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = true
         view.antialiasingMode = .multisampling4X
@@ -153,8 +154,28 @@ struct StudioViewport: UIViewRepresentable {
     }
 
     func updateUIView(_ view: SCNView, context: Context) {
-        view.scene = makeScene()
         context.coordinator.view = view
+        if context.coordinator.lastNodes != project.nodes ||
+            context.coordinator.lastSelectedID != project.selectedID ||
+            view.scene == nil {
+            view.scene = makeScene()
+            context.coordinator.lastNodes = project.nodes
+            context.coordinator.lastSelectedID = project.selectedID
+        } else {
+            updateCamera(in: view.scene)
+        }
+    }
+
+    private func updateCamera(in scene: SCNScene?) {
+        guard let cameraNode = scene?.rootNode.childNode(withName: "StudioCamera", recursively: false) else { return }
+        let distance: Double = 57
+        let horizontal = distance * cos(project.cameraPitch)
+        cameraNode.position = SCNVector3(
+            Float(project.cameraTargetX + sin(project.cameraYaw) * horizontal),
+            Float(32 + sin(project.cameraPitch) * distance),
+            Float(project.cameraTargetZ + cos(project.cameraYaw) * horizontal)
+        )
+        cameraNode.look(at: SCNVector3(Float(project.cameraTargetX), 0, Float(project.cameraTargetZ)))
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(project: project) }
@@ -183,6 +204,7 @@ struct StudioViewport: UIViewRepresentable {
         camera.zFar = 10000
         camera.fieldOfView = 55
         cameraNode.camera = camera
+        cameraNode.name = "StudioCamera"
         let distance: Double = 57
         let horizontal = distance * cos(project.cameraPitch)
         cameraNode.position = SCNVector3(Float(project.cameraTargetX + sin(project.cameraYaw) * horizontal), Float(32 + sin(project.cameraPitch) * distance), Float(project.cameraTargetZ + cos(project.cameraYaw) * horizontal))
