@@ -11,6 +11,8 @@ struct EditingView: View {
     @State private var toolboxSearch = ""
     @State private var toolboxTab = "Models"
     @State private var commandText = ""
+    @State private var showR6Importer = false
+    @State private var importStatus = ""
 
     private var selectedNode: StudioNode? { project.selectedNode }
 
@@ -69,8 +71,43 @@ struct EditingView: View {
             }.preferredColorScheme(.dark)
         }
         .sheet(isPresented: $showAnimationPanel) { animationSheet }
+        .fileImporter(isPresented: $showR6Importer, allowedContentTypes: [UTType(filenameExtension: "obj") ?? .plainText, .png], allowsMultipleSelection: true) { result in
+            importR6Character(result)
+        }
+        .alert(isPresented: Binding(get: { !importStatus.isEmpty }, set: { if !$0 { importStatus = "" } })) {
+            Alert(title: Text("R6 Character Import"), message: Text(importStatus), dismissButton: .default(Text("OK")))
+        }
     }
 
+    private func importR6Character(_ result: Result<[URL], Error>) {
+        do {
+            let urls = try result.get()
+            var objFiles: [(String, String)] = []
+            var textureData: Data?
+            for url in urls {
+                let scoped = url.startAccessingSecurityScopedResource()
+                defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+                let ext = url.pathExtension.lowercased()
+                if ext == "obj" {
+                    objFiles.append((url.deletingPathExtension().lastPathComponent, try String(contentsOf: url, encoding: .utf8)))
+                } else if ext == "png" { textureData = try Data(contentsOf: url) }
+            }
+            guard !objFiles.isEmpty else { importStatus = "Select the six BaconHair_Slice OBJ files and the character texture PNG together."; return }
+            objFiles.sort { $0.0.localizedStandardCompare($1.0) == .orderedAscending }
+            project.nodes.removeAll { $0.className == "MeshPart" && $0.name.hasPrefix("BaconHair_") }
+            for (name, source) in objFiles {
+                project.nodes.append(StudioNode(name: name, className: "MeshPart", meshOBJ: source, meshTextureData: textureData))
+            }
+            project.selectedID = project.nodes.last(where: { $0.className == "MeshPart" })?.id
+            project.cameraTargetX = 0
+            project.cameraTargetZ = 0
+            if textureData == nil {
+                importStatus = "Imported \(objFiles.count) OBJ mesh sections. No PNG was selected, so a fallback material is used. Import the atlas PNG together with the OBJ files to apply the character artwork."
+            } else {
+                importStatus = "Imported \(objFiles.count) OBJ mesh sections and applied the texture atlas. The sections remain separately selectable in Explorer."
+            }
+        } catch { importStatus = "Import failed: \(error.localizedDescription)" }
+    }
     private var binaryDocument: RBXLBinaryExportDocument {
         do { return RBXLBinaryExportDocument(data: try project.exportBinaryRBXL()) }
         catch { return RBXLBinaryExportDocument(data: Data()) }
@@ -88,6 +125,9 @@ struct EditingView: View {
                     .background(project.activeTab == tab ? Color.blue : Color.clear).cornerRadius(9)
             }
             Spacer(minLength: 4)
+            Button { showR6Importer = true } label: {
+                Label("Import R6", systemImage: "person.crop.square.badge.plus").font(.system(size: 13, weight: .bold)).foregroundColor(.blue)
+            }
             Button { showExporter = true } label: {
                 Label("Export .rbxl", systemImage: "square.and.arrow.up")
                     .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
