@@ -439,7 +439,12 @@ struct StudioViewport: UIViewRepresentable {
             case "car": partColor = .systemRed
             case "glass": partColor = UIColor.cyan.withAlphaComponent(0.7)
             case "tire": partColor = .darkGray
-            default: partColor = UIColor(red: 0.55, green: 0.62, blue: 0.72, alpha: 1)
+            default:
+                if item.materialColor.hasPrefix("hex:"), let rgb = Int(item.materialColor.dropFirst(4), radix: 16) {
+                    partColor = UIColor(red: CGFloat((rgb >> 16) & 255) / 255, green: CGFloat((rgb >> 8) & 255) / 255, blue: CGFloat(rgb & 255) / 255, alpha: 1)
+                } else {
+                    partColor = UIColor(red: 0.55, green: 0.62, blue: 0.72, alpha: 1)
+                }
             }
             material.diffuse.contents = item.id == project.selectedID ? UIColor.systemBlue : partColor
             material.roughness.contents = 0.82
@@ -741,6 +746,14 @@ private enum RobloxBinaryPlaceImporter {
                             objects[ref] = item
                         }
                     }
+                case 12:
+                    let red = try floats(&r, refs.count), green = try floats(&r, refs.count), blue = try floats(&r, refs.count)
+                    for (i, ref) in refs.enumerated() {
+                        if var item = objects[ref] {
+                            if prop == "Color" { item.node.materialColor = String(format: "hex:%02X%02X%02X", Int(min(255, max(0, red[i] * 255))), Int(min(255, max(0, green[i] * 255))), Int(min(255, max(0, blue[i] * 255)))) }
+                            objects[ref] = item
+                        }
+                    }
                 case 14:
                     let x = try floats(&r, refs.count), y = try floats(&r, refs.count), z = try floats(&r, refs.count)
                     for (i, ref) in refs.enumerated() {
@@ -782,7 +795,7 @@ private enum RobloxBinaryPlaceImporter {
                 guard count <= 1_000_000 else { throw r.err("Parent table is too large.") }
                 let children = try references(&r, count), owners = try references(&r, count)
                 for i in 0..<min(children.count, owners.count) { parents[children[i]] = owners[i] }
-            case "END.":
+            case "END.", "END\u{0}":
                 ended = true
             default:
                 break
