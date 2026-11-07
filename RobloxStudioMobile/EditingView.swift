@@ -99,7 +99,7 @@ struct EditingView: View {
             objFiles.sort { $0.0.localizedStandardCompare($1.0) == .orderedAscending }
             project.nodes.removeAll { $0.className == "MeshPart" && $0.name.hasPrefix("BaconHair_") }
             for (name, source) in objFiles {
-                project.nodes.append(StudioNode(name: name, className: "MeshPart", meshOBJ: source, meshTextureData: textureData))
+                project.nodes.append(StudioNode(name: name, className: "MeshPart", meshOBJ: source, meshTextureData: textureData, isAvatarAsset: true))
             }
             project.selectedID = project.nodes.last(where: { $0.className == "MeshPart" })?.id
             project.cameraTargetX = 0
@@ -205,11 +205,7 @@ struct EditingView: View {
                     ForEach(toolboxItems.filter { toolboxSearch.isEmpty || $0.0.localizedCaseInsensitiveContains(toolboxSearch) }, id: \.0) { item in
                         Button {
                             switch item.0 {
-                            case "R6 Rig", "R15 Rig", "NPC": project.addR6Rig()
-                            case "Sphere": project.addPart(shape: "Sphere")
-                            case "Cylinder": project.addPart(shape: "Cylinder")
-                            case "Wedge": project.addPart(shape: "Wedge")
-                            default: project.addPart(shape: "Block")
+                            project.insertToolboxItem(item.0)
                             }
                         } label: {
                             VStack(spacing: 5) {
