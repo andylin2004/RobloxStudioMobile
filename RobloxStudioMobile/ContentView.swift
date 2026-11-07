@@ -1,8 +1,11 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     @State private var selectedSection = "New"
     @State private var project: StudioProject? = nil
+    @State private var showPlaceImporter = false
+    @State private var importMessage = ""
     private let templates = ["Baseplate", "Classic Baseplate", "Flat Terrain", "Obby", "Starting Place", "Village", "Castle", "City"]
 
     var body: some View {
@@ -14,6 +17,7 @@ struct ContentView: View {
                         Text("FILE").font(.system(size: 13, weight: .bold))
                         Spacer()
                         Text("RobloxStudioMobile").font(.system(size: 13, weight: .semibold)).foregroundColor(.secondary)
+                        Button { showPlaceImporter = true } label: { Label("Open .rbxlx", systemImage: "folder").font(.system(size: 12, weight: .bold)).padding(8).background(Color.blue).cornerRadius(7) }.foregroundColor(.white)
                     }
                     .padding(.horizontal, 22).padding(.vertical, 15)
                     Divider()
