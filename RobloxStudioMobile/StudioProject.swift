@@ -276,7 +276,15 @@ struct StudioViewport: UIViewRepresentable {
         let distance: Double = hasCharacter ? 16 : 57
         let targetY: Double = hasCharacter ? 3.2 : 0
         let horizontal = distance * cos(project.cameraPitch)
-        if project.isPlaying {\n            cameraNode.position = SCNVector3(Float(project.playerOffsetX), 4.9, Float(project.playerOffsetZ))\n            cameraNode.fieldOfView = 78\n            cameraNode.look(at: SCNVector3(Float(project.playerOffsetX), 4.9, Float(project.playerOffsetZ + 10)))\n        } else {\n            cameraNode.fieldOfView = 55\n            cameraNode.position = SCNVector3(Float(project.cameraTargetX + sin(project.cameraYaw) * horizontal), Float(targetY + 8 + sin(project.cameraPitch) * distance), Float(project.cameraTargetZ + cos(project.cameraYaw) * horizontal))\n            cameraNode.look(at: SCNVector3(Float(project.cameraTargetX), Float(targetY), Float(project.cameraTargetZ)))\n        }
+        if project.isPlaying {
+            cameraNode.position = SCNVector3(Float(project.playerOffsetX), 4.9, Float(project.playerOffsetZ))
+            cameraNode.fieldOfView = 78
+            cameraNode.look(at: SCNVector3(Float(project.playerOffsetX), 4.9, Float(project.playerOffsetZ + 10)))
+        } else {
+            cameraNode.fieldOfView = 55
+            cameraNode.position = SCNVector3(Float(project.cameraTargetX + sin(project.cameraYaw) * horizontal), Float(targetY + 8 + sin(project.cameraPitch) * distance), Float(project.cameraTargetZ + cos(project.cameraYaw) * horizontal))
+            cameraNode.look(at: SCNVector3(Float(project.cameraTargetX), Float(targetY), Float(project.cameraTargetZ)))
+        }
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(project: project) }
@@ -388,7 +396,15 @@ struct StudioViewport: UIViewRepresentable {
             case "face": partColor = .black
             case "hairDark": partColor = UIColor(red: 0.24, green: 0.075, blue: 0.018, alpha: 1)
             case "hairLight": partColor = UIColor(red: 0.78, green: 0.30, blue: 0.035, alpha: 1)
-            case "hair": partColor = UIColor(red: 0.48, green: 0.16, blue: 0.025, alpha: 1)\n            case "trunk": partColor = UIColor.brown\n            case "leaf": partColor = .systemGreen\n            case "wall": partColor = UIColor(red: 0.78, green: 0.65, blue: 0.48, alpha: 1)\n            case "roof": partColor = .systemRed\n            case "door": partColor = UIColor.brown\n            case "car": partColor = .systemRed\n            case "glass": partColor = UIColor.cyan.withAlphaComponent(0.7)\n            case "tire": partColor = .darkGray
+            case "hair": partColor = UIColor(red: 0.48, green: 0.16, blue: 0.025, alpha: 1)
+            case "trunk": partColor = UIColor.brown
+            case "leaf": partColor = .systemGreen
+            case "wall": partColor = UIColor(red: 0.78, green: 0.65, blue: 0.48, alpha: 1)
+            case "roof": partColor = .systemRed
+            case "door": partColor = UIColor.brown
+            case "car": partColor = .systemRed
+            case "glass": partColor = UIColor.cyan.withAlphaComponent(0.7)
+            case "tire": partColor = .darkGray
             default: partColor = UIColor(red: 0.55, green: 0.62, blue: 0.72, alpha: 1)
             }
             material.diffuse.contents = item.id == project.selectedID ? UIColor.systemBlue : partColor
@@ -483,7 +499,9 @@ struct StudioViewport: UIViewRepresentable {
             material.isDoubleSided = true
             geometry.materials = [material]
             let meshNode = SCNNode(geometry: geometry)
-            meshNode.name = item.id.uuidString\n            meshNode.isHidden = item.isAvatarAsset && !project.isPlaying\n            scene.rootNode.addChildNode(meshNode)
+            meshNode.name = item.id.uuidString
+            meshNode.isHidden = item.isAvatarAsset && !project.isPlaying
+            scene.rootNode.addChildNode(meshNode)
         }
         return scene
     }
