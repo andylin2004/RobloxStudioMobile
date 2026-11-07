@@ -284,10 +284,10 @@ struct StudioViewport: UIViewRepresentable {
         let horizontal = distance * cos(project.cameraPitch)
         if project.isPlaying {
             cameraNode.position = SCNVector3(Float(project.playerOffsetX), 4.9, Float(project.playerOffsetZ))
-            cameraNode.fieldOfView = 78
+            cameraNode.camera?.fieldOfView = 78
             cameraNode.look(at: SCNVector3(Float(project.playerOffsetX), 4.9, Float(project.playerOffsetZ + 10)))
         } else {
-            cameraNode.fieldOfView = 55
+            cameraNode.camera?.fieldOfView = 55
             cameraNode.position = SCNVector3(Float(project.cameraTargetX + sin(project.cameraYaw) * horizontal), Float(targetY + 8 + sin(project.cameraPitch) * distance), Float(project.cameraTargetZ + cos(project.cameraYaw) * horizontal))
             cameraNode.look(at: SCNVector3(Float(project.cameraTargetX), Float(targetY), Float(project.cameraTargetZ)))
         }
