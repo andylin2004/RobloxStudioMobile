@@ -91,7 +91,6 @@ final class StudioProject: ObservableObject, Identifiable {
     func scaleSelectedBy(horizontal: Double, vertical: Double) {
         guard !isPlaying, let id = selectedID, let index = nodes.firstIndex(where: { $0.id == id }) else { return }
         nodes[index].width = max(0.05, min(512, nodes[index].width + horizontal))
-        nodes[index].depth = max(0.05, min(512, nodes[index].depth + horizontal))
         nodes[index].height = max(0.05, min(512, nodes[index].height + vertical))
     }
 
@@ -276,6 +275,9 @@ struct StudioViewport: UIViewRepresentable {
         }
         for item in project.nodes where item.isAvatarAsset {
             view.scene?.rootNode.childNode(withName: item.id.uuidString, recursively: true)?.isHidden = !project.isPlaying
+        }
+        if !project.nodes.contains(where: { $0.isAvatarAsset && $0.className == "MeshPart" }) {
+            view.scene?.rootNode.childNode(withName: "R6CharacterRoot", recursively: false)?.isHidden = !project.isPlaying
         }
         updateCharacterAnimation(in: view.scene, coordinator: context.coordinator)
         if context.coordinator.lastJumpCount != project.jumpCount {
