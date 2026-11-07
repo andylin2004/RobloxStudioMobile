@@ -219,9 +219,9 @@ struct StudioViewport: UIViewRepresentable {
 
     private func updateCamera(in scene: SCNScene?) {
         guard let cameraNode = scene?.rootNode.childNode(withName: "StudioCamera", recursively: false) else { return }
-        let hasImportedMesh = project.nodes.contains { $0.className == "MeshPart" }
-        let distance: Double = hasImportedMesh ? 15 : 57
-        let targetY: Double = hasImportedMesh ? 3.3 : 0
+        let hasCharacter = project.nodes.contains { $0.className == "MeshPart" || $0.name == "R6_Head" }
+        let distance: Double = hasCharacter ? 16 : 57
+        let targetY: Double = hasCharacter ? 3.2 : 0
         let horizontal = distance * cos(project.cameraPitch)
         cameraNode.position = SCNVector3(
             Float(project.cameraTargetX + sin(project.cameraYaw) * horizontal),
