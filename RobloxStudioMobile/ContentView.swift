@@ -43,6 +43,26 @@ struct ContentView: View {
             EditingView(project: selectedProject)
         }
         .preferredColorScheme(.dark)
+        .fileImporter(isPresented: $showPlaceImporter, allowedContentTypes: [UTType.xml, UTType(filenameExtension: "rbxlx") ?? .xml, UTType(filenameExtension: "rbxl") ?? .data], allowsMultipleSelection: false) { result in
+            do {
+                let urls = try result.get()
+                guard let url = urls.first else { return }
+                let scoped = url.startAccessingSecurityScopedResource()
+                defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+                guard url.pathExtension.lowercased() == "rbxlx" else {
+                    importMessage = "Binary .rbxl import is not supported yet; choose an XML .rbxlx place file."
+                    return
+                }
+                let data = try Data(contentsOf: url)
+                project = try StudioProject.importRBXLX(data, name: url.deletingPathExtension().lastPathComponent)
+                selectedSection = "New"
+            } catch {
+                importMessage = "Could not open place: " + error.localizedDescription
+            }
+        }
+        .alert(isPresented: Binding(get: { !importMessage.isEmpty }, set: { if !$0 { importMessage = "" } })) {
+            Alert(title: Text("Open Roblox Place"), message: Text(importMessage), dismissButton: .default(Text("OK")))
+        }
     }
 
     private var sidebar: some View {
