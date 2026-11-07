@@ -716,7 +716,7 @@ private enum RobloxBinaryPlaceImporter {
                 guard let refs = groups[id], let cls = classes[id] else { continue }
                 let basePart = ["Part","WedgePart","CornerWedgePart","TrussPart","SpawnLocation","Seat","VehicleSeat","MeshPart","UnionOperation"].contains(cls)
                 let wanted = prop == "Name" ||
-                    (basePart && ["CFrame","Size","Anchored","CanCollide","Transparency","Shape"].contains(prop)) ||
+                    (basePart && ["CFrame","Size","Anchored","CanCollide","Transparency","Shape","Color"].contains(prop)) ||
                     (["Script","LocalScript","ModuleScript"].contains(cls) && prop == "Source")
                 guard wanted else { continue }
                 switch type {
