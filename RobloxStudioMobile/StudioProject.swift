@@ -187,6 +187,8 @@ struct StudioViewport: UIViewRepresentable {
     final class Coordinator: NSObject {
         let project: StudioProject
         weak var view: SCNView?
+        var lastNodes: [StudioNode]?
+        var lastSelectedID: UUID?
         init(project: StudioProject) { self.project = project }
         @objc func selectNode(_ gesture: UITapGestureRecognizer) {
             guard let view = view else { return }
@@ -335,8 +337,9 @@ struct StudioViewport: UIViewRepresentable {
                         // Front projection matches the supplied full-character atlas.
                         let sourceX = vertex.x / 0.12 - 20
                         let sourceY = vertex.y / 0.12
-                        uvs.append(CGPoint(x: min(1, max(0, (sourceX + 36) / 42)),
-                                           y: min(1, max(0, 1 - sourceY / 56))))
+                        let u: CGFloat = CGFloat(min(1.0, max(0.0, (sourceX + 36.0) / 42.0)))
+                        let v: CGFloat = CGFloat(min(1.0, max(0.0, 1.0 - sourceY / 56.0)))
+                        uvs.append(CGPoint(x: u, y: v))
                         triangleIndices.append(Int32(triangleIndices.count))
                     }
                 }
