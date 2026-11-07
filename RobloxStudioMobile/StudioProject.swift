@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import SceneKit
 import UIKit
+import FoundationXML
 
 struct StudioNode: Identifiable, Codable, Equatable {
     var id: UUID = UUID()
@@ -173,6 +174,20 @@ final class StudioProject: ObservableObject, Identifiable {
     func updateSelected(_ change: (inout StudioNode) -> Void) {
         guard let id = selectedID, let index = nodes.firstIndex(where: { $0.id == id }) else { return }
         change(&nodes[index])
+    }
+
+
+    static func importRBXLX(_ data: Data, name: String) throws -> StudioProject {
+        let parser = XMLParser(data: data)
+        let delegate = StudioXMLImportDelegate()
+        parser.delegate = delegate
+        guard parser.parse(), !delegate.nodes.isEmpty else {
+            throw NSError(domain: "RobloxStudioMobile.Import", code: 1, userInfo: [NSLocalizedDescriptionKey: parser.parserError?.localizedDescription ?? "No supported Part instances were found."])
+        }
+        let project = StudioProject(name: name, template: "Baseplate")
+        project.nodes = delegate.nodes
+        project.selectedID = project.nodes.first?.id
+        return project
     }
 
     func exportXML() -> String {
@@ -516,5 +531,71 @@ struct StudioViewport: UIViewRepresentable {
         }
         updateCamera(in: scene)
         return scene
+    }
+}
+
+
+private final class StudioXMLImportDelegate: NSObject, XMLParserDelegate {
+    var nodes: [StudioNode] = []
+    private var current: StudioNode?
+    private var property = ""
+    private var field = ""
+    private var text = ""
+
+    func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String : String] = [:]) {
+        if elementName == "Item" {
+            let cls = attributeDict["class"] ?? ""
+            if ["Part", "Script", "LocalScript", "ModuleScript"].contains(cls) {
+                current = StudioNode(name: cls == "Part" ? "Part" : cls, className: cls)
+            }
+        } else if ["string", "bool", "float", "token", "CoordinateFrame", "Vector3", "ProtectedString"].contains(elementName) {
+            property = attributeDict["name"] ?? elementName
+            field = ""
+            text = ""
+        } else if ["X", "Y", "Z"].contains(elementName) {
+            field = elementName
+            text = ""
+        }
+    }
+
+    func parser(_ parser: XMLParser, foundCharacters string: String) { text += string }
+
+    func parser(_ parser: XMLParser, foundCDATA CDATABlock: Data) {
+        if let value = String(data: CDATABlock, encoding: .utf8) { text += value }
+    }
+
+    func parser(_ parser: XMLParser, didEndElement elementName: String, namespaceURI: String?, qualifiedName qName: String?) {
+        guard current != nil else { return }
+        let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if ["Name", "Source", "Anchored", "CanCollide", "Transparency", "Shape"].contains(property), ["string", "bool", "float", "token", "ProtectedString"].contains(elementName) {
+            switch property {
+            case "Name": current?.name = value
+            case "Source": current?.source = value
+            case "Anchored": current?.anchored = value == "true"
+            case "CanCollide": current?.canCollide = value == "true"
+            case "Transparency": current?.transparency = Double(value) ?? 0
+            case "Shape":
+                let token = Int(value) ?? 1
+                current?.shape = token == 0 ? "Sphere" : (token == 2 ? "Cylinder" : "Block")
+            default: break
+            }
+            property = ""
+        } else if ["X", "Y", "Z"].contains(elementName), let number = Double(value) {
+            if property == "CFrame" {
+                if field == "X" { current?.x = number }
+                if field == "Y" { current?.y = number }
+                if field == "Z" { current?.z = number }
+            } else if property == "size" {
+                if field == "X" { current?.width = number }
+                if field == "Y" { current?.height = number }
+                if field == "Z" { current?.depth = number }
+            }
+            field = ""
+        } else if elementName == "Item", let item = current {
+            nodes.append(item)
+            current = nil
+            property = ""
+        }
+        if ["X", "Y", "Z"].contains(elementName) { text = "" }
     }
 }
