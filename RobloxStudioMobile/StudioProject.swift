@@ -236,6 +236,9 @@ struct StudioViewport: UIViewRepresentable {
         } else {
             updateCamera(in: view.scene)
         }
+        for item in project.nodes where item.isAvatarAsset {
+            view.scene?.rootNode.childNode(withName: item.id.uuidString, recursively: true)?.isHidden = !project.isPlaying
+        }
         updateCharacterAnimation(in: view.scene, coordinator: context.coordinator)
         if context.coordinator.lastJumpCount != project.jumpCount {
             context.coordinator.lastJumpCount = project.jumpCount
@@ -503,6 +506,7 @@ struct StudioViewport: UIViewRepresentable {
             meshNode.isHidden = item.isAvatarAsset && !project.isPlaying
             scene.rootNode.addChildNode(meshNode)
         }
+        updateCamera(in: scene)
         return scene
     }
 }
