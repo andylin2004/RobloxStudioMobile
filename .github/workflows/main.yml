@@ -1,0 +1,128 @@
+name: RobloxStudioMobile iOS unsigned IPA
+
+on:
+  push:
+    branches: [main, legacy, studio-ui-and-export]
+  pull_request:
+    branches: [main, legacy]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: roblox-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-ios:
+    name: Build RobloxStudioMobile for iPhone and iPad
+    # macos-26-intel is a supported GitHub-hosted runner label.
+    runs-on: macos-26-intel
+    timeout-minutes: 120
+    env:
+      PROJECT_PATH: RobloxStudioMobile.xcodeproj
+      SCHEME_NAME: RobloxStudioMobile
+      DERIVED_DATA: ${{ github.workspace }}/build/DerivedData
+      PACKAGE_CACHE: ${{ github.workspace }}/build/SourcePackages
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Verify project and scheme
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d "$PROJECT_PATH"
+          test -f "$PROJECT_PATH/project.pbxproj"
+          test -f "$PROJECT_PATH/xcshareddata/xcschemes/$SCHEME_NAME.xcscheme"
+          mkdir -p build
+          xcodebuild -version
+          xcodebuild -showsdks
+          xcodebuild -list -project "$PROJECT_PATH" | tee build/xcode-list.log
+
+      - name: Resolve Swift package dependencies
+        timeout-minutes: 25
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$PACKAGE_CACHE" build
+          xcodebuild \
+            -resolvePackageDependencies \
+            -project "$PROJECT_PATH" \
+            -scheme "$SCHEME_NAME" \
+            -clonedSourcePackagesDirPath "$PACKAGE_CACHE" \
+            2>&1 | tee build/package-resolution.log
+
+      - name: Compile unsigned iOS app
+        timeout-minutes: 70
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          xcodebuild \
+            -project "$PROJECT_PATH" \
+            -scheme "$SCHEME_NAME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$DERIVED_DATA" \
+            -clonedSourcePackagesDirPath "$PACKAGE_CACHE" \
+            -disableAutomaticPackageResolution \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY= \
+            build 2>&1 | tee build/xcodebuild.log
+
+      - name: Package and verify unsigned IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_DIR="$DERIVED_DATA/Build/Products/Release-iphoneos"
+          APP="$(find "$APP_DIR" -maxdepth 1 -type d -name '*.app' -print -quit)"
+
+          if [[ -z "$APP" || ! -d "$APP" ]]; then
+            echo "::error::No .app bundle was produced."
+            find "$DERIVED_DATA/Build/Products" -maxdepth 5 -print || true
+            exit 1
+          fi
+
+          test -s "$APP/Info.plist"
+          plutil -lint "$APP/Info.plist"
+
+          IPA="build/RobloxStudioMobile-iOS-unsigned.ipa"
+          rm -rf build/ipa "$IPA"
+          mkdir -p build/ipa/Payload
+          ditto "$APP" "build/ipa/Payload/$(basename "$APP")"
+          (cd build/ipa && /usr/bin/zip -qry "../$(basename "$IPA")" Payload)
+
+          /usr/bin/unzip -tq "$IPA"
+          test -s "$IPA"
+          shasum -a 256 "$IPA"
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: RobloxStudioMobile-iOS-unsigned-IPA
+          path: build/RobloxStudioMobile-iOS-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: RobloxStudioMobile-build-diagnostics
+          path: |
+            build/*.log
+            build/DerivedData/Logs/Build/**
+          if-no-files-found: ignore
+          retention-days: 7
