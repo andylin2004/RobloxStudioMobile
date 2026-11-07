@@ -22,6 +22,7 @@ struct StudioNode: Identifiable, Codable, Equatable {
     var meshOBJ: String = ""
     var meshTextureData: Data? = nil
     var materialColor: String = ""
+    var isAvatarAsset: Bool = false
 }
 
 final class StudioProject: ObservableObject, Identifiable {
@@ -68,7 +69,6 @@ final class StudioProject: ObservableObject, Identifiable {
         default:
             nodes = [StudioNode(name: "Baseplate", className: "Part", x: 0, y: -1, width: 512, height: 2, depth: 512)]
         }
-        addR6Rig()
     }
 
 
@@ -91,31 +91,46 @@ final class StudioProject: ObservableObject, Identifiable {
     }
 
     func addR6Rig() {
-        guard !nodes.contains(where: { $0.name == "R6_Head" }) else { return }
-        let rig: [StudioNode] = [
-            StudioNode(name: "R6_LeftLeg", className: "Part", x: -0.5, y: 1.1, width: 1, height: 2.2, depth: 1, materialColor: "pants"),
-            StudioNode(name: "R6_RightLeg", className: "Part", x: 0.5, y: 1.1, width: 1, height: 2.2, depth: 1, materialColor: "pants"),
-            StudioNode(name: "R6_LeftFoot", className: "Part", x: -0.5, y: 0.12, width: 1, height: 0.24, depth: 1.05, materialColor: "white"),
-            StudioNode(name: "R6_RightFoot", className: "Part", x: 0.5, y: 0.12, width: 1, height: 0.24, depth: 1.05, materialColor: "white"),
-            StudioNode(name: "R6_Torso", className: "Part", x: 0, y: 3.25, width: 2, height: 2.1, depth: 1, materialColor: "blue"),
-            StudioNode(name: "R6_JacketLeft", className: "Part", x: -0.76, y: 3.25, width: 0.48, height: 2.1, depth: 1.04, materialColor: "black"),
-            StudioNode(name: "R6_JacketRight", className: "Part", x: 0.76, y: 3.25, width: 0.48, height: 2.1, depth: 1.04, materialColor: "black"),
-            StudioNode(name: "R6_LeftArm", className: "Part", x: -1.55, y: 3.25, width: 1, height: 2.1, depth: 1, materialColor: "black"),
-            StudioNode(name: "R6_RightArm", className: "Part", x: 1.55, y: 3.25, width: 1, height: 2.1, depth: 1, materialColor: "black"),
-            StudioNode(name: "R6_Head", className: "Part", x: 0, y: 5.15, width: 2, height: 1.55, depth: 1.35, materialColor: "white"),
-            StudioNode(name: "R6_LeftEye", className: "Part", shape: "Sphere", x: -0.36, y: 5.28, z: 0.69, width: 0.16, height: 0.3, depth: 0.12, materialColor: "face"),
-            StudioNode(name: "R6_RightEye", className: "Part", shape: "Sphere", x: 0.36, y: 5.28, z: 0.69, width: 0.16, height: 0.3, depth: 0.12, materialColor: "face"),
-            StudioNode(name: "R6_Smile", className: "Part", x: 0, y: 4.82, z: 0.70, width: 0.62, height: 0.055, depth: 0.035, materialColor: "face"),
-            StudioNode(name: "R6_HairCap", className: "Part", x: 0, y: 6.05, z: 0, width: 2.15, height: 0.58, depth: 1.48, materialColor: "hairDark"),
-            StudioNode(name: "R6_HairFront1", className: "Part", x: -0.78, y: 5.75, z: 0.48, width: 0.42, height: 0.9, depth: 0.5, materialColor: "hair"),
-            StudioNode(name: "R6_HairFront2", className: "Part", x: -0.32, y: 5.78, z: 0.55, width: 0.42, height: 0.95, depth: 0.48, materialColor: "hairLight"),
-            StudioNode(name: "R6_HairFront3", className: "Part", x: 0.18, y: 5.78, z: 0.56, width: 0.42, height: 0.92, depth: 0.48, materialColor: "hair"),
-            StudioNode(name: "R6_HairFront4", className: "Part", x: 0.65, y: 5.74, z: 0.48, width: 0.42, height: 0.86, depth: 0.5, materialColor: "hairLight"),
-            StudioNode(name: "R6_HairSideLeft", className: "Part", x: -1.0, y: 5.25, z: 0.02, width: 0.42, height: 1.5, depth: 1.25, materialColor: "hairDark"),
-            StudioNode(name: "R6_HairSideRight", className: "Part", x: 1.0, y: 5.25, z: 0.02, width: 0.42, height: 1.5, depth: 1.25, materialColor: "hairDark")
-        ]
-        nodes.append(contentsOf: rig)
-        selectedID = rig.first(where: { $0.name == "R6_Head" })?.id
+        // This project uses the supplied BaconHair OBJ pieces as the avatar asset.
+        // A complete body rig must be supplied separately; do not fabricate replacement body geometry.
+        let imported = nodes.filter { $0.isAvatarAsset }
+        guard !imported.isEmpty else { return }
+        selectedID = imported.first?.id
+    }
+
+    func insertToolboxItem(_ item: String) {
+        switch item {
+        case "Block": addPart(shape: "Block")
+        case "Sphere": addPart(shape: "Sphere")
+        case "Cylinder": addPart(shape: "Cylinder")
+        case "Wedge", "Corner Wedge": addPart(shape: "Wedge")
+        case "Truss":
+            let base = StudioNode(name: "Truss", className: "Part", shape: "Block", x: 0, y: 4, width: 1, height: 6, depth: 1)
+            nodes.append(base); selectedID = base.id
+        case "Tree":
+            let trunk = StudioNode(name: "Tree_Trunk", className: "Part", x: 0, y: 2, width: 0.8, height: 4, depth: 0.8, materialColor: "trunk")
+            let crown = StudioNode(name: "Tree_Crown", className: "Part", shape: "Sphere", x: 0, y: 5, width: 4, height: 4, depth: 4, materialColor: "leaf")
+            nodes.append(contentsOf: [trunk, crown]); selectedID = crown.id
+        case "House":
+            let pieces = [
+                StudioNode(name: "House_Body", className: "Part", x: 0, y: 3, width: 8, height: 5, depth: 7, materialColor: "wall"),
+                StudioNode(name: "House_Roof", className: "Part", shape: "Wedge", x: 0, y: 6.2, width: 9, height: 2, depth: 8, materialColor: "roof"),
+                StudioNode(name: "House_Door", className: "Part", x: 0, y: 1.5, z: 3.56, width: 1.5, height: 3, depth: 0.12, materialColor: "door")
+            ]
+            nodes.append(contentsOf: pieces); selectedID = pieces[0].id
+        case "Car":
+            let pieces = [
+                StudioNode(name: "Car_Body", className: "Part", x: 0, y: 1.2, width: 7, height: 1.5, depth: 3.5, materialColor: "car"),
+                StudioNode(name: "Car_Cabin", className: "Part", x: 0, y: 2.4, width: 3.8, height: 1.4, depth: 3, materialColor: "glass"),
+                StudioNode(name: "Car_Wheel_FL", className: "Part", shape: "Cylinder", x: -2.2, y: 0.55, z: 1.5, width: 1.2, height: 0.5, depth: 1.2, materialColor: "tire"),
+                StudioNode(name: "Car_Wheel_FR", className: "Part", shape: "Cylinder", x: 2.2, y: 0.55, z: 1.5, width: 1.2, height: 0.5, depth: 1.2, materialColor: "tire"),
+                StudioNode(name: "Car_Wheel_BL", className: "Part", shape: "Cylinder", x: -2.2, y: 0.55, z: -1.5, width: 1.2, height: 0.5, depth: 1.2, materialColor: "tire"),
+                StudioNode(name: "Car_Wheel_BR", className: "Part", shape: "Cylinder", x: 2.2, y: 0.55, z: -1.5, width: 1.2, height: 0.5, depth: 1.2, materialColor: "tire")
+            ]
+            nodes.append(contentsOf: pieces); selectedID = pieces[0].id
+        case "R6 Rig", "R15 Rig", "NPC": addR6Rig()
+        default: addPart()
+        }
     }
 
     var selectedNode: StudioNode? { nodes.first { $0.id == selectedID } }
@@ -257,16 +272,11 @@ struct StudioViewport: UIViewRepresentable {
     }
     private func updateCamera(in scene: SCNScene?) {
         guard let cameraNode = scene?.rootNode.childNode(withName: "StudioCamera", recursively: false) else { return }
-        let hasCharacter = project.nodes.contains { $0.className == "MeshPart" || $0.name == "R6_Head" }
+        let hasCharacter = project.nodes.contains { $0.isAvatarAsset }
         let distance: Double = hasCharacter ? 16 : 57
         let targetY: Double = hasCharacter ? 3.2 : 0
         let horizontal = distance * cos(project.cameraPitch)
-        cameraNode.position = SCNVector3(
-            Float(project.cameraTargetX + sin(project.cameraYaw) * horizontal),
-            Float(targetY + 8 + sin(project.cameraPitch) * distance),
-            Float(project.cameraTargetZ + cos(project.cameraYaw) * horizontal)
-        )
-        cameraNode.look(at: SCNVector3(Float(project.cameraTargetX + (project.isPlaying ? project.playerOffsetX : 0)), Float(targetY), Float(project.cameraTargetZ + (project.isPlaying ? project.playerOffsetZ : 0))))
+        if project.isPlaying {\n            cameraNode.position = SCNVector3(Float(project.playerOffsetX), 4.9, Float(project.playerOffsetZ))\n            cameraNode.fieldOfView = 78\n            cameraNode.look(at: SCNVector3(Float(project.playerOffsetX), 4.9, Float(project.playerOffsetZ + 10)))\n        } else {\n            cameraNode.fieldOfView = 55\n            cameraNode.position = SCNVector3(Float(project.cameraTargetX + sin(project.cameraYaw) * horizontal), Float(targetY + 8 + sin(project.cameraPitch) * distance), Float(project.cameraTargetZ + cos(project.cameraYaw) * horizontal))\n            cameraNode.look(at: SCNVector3(Float(project.cameraTargetX), Float(targetY), Float(project.cameraTargetZ)))\n        }
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(project: project) }
@@ -323,7 +333,7 @@ struct StudioViewport: UIViewRepresentable {
         camera.fieldOfView = 55
         cameraNode.camera = camera
         cameraNode.name = "StudioCamera"
-        let hasCharacter = project.nodes.contains { $0.className == "MeshPart" || $0.name == "R6_Head" }
+        let hasCharacter = project.nodes.contains { $0.isAvatarAsset }
         let distance: Double = hasCharacter ? 16 : 57
         let targetY: Double = hasCharacter ? 3.2 : 0
         let horizontal = distance * cos(project.cameraPitch)
@@ -378,7 +388,7 @@ struct StudioViewport: UIViewRepresentable {
             case "face": partColor = .black
             case "hairDark": partColor = UIColor(red: 0.24, green: 0.075, blue: 0.018, alpha: 1)
             case "hairLight": partColor = UIColor(red: 0.78, green: 0.30, blue: 0.035, alpha: 1)
-            case "hair": partColor = UIColor(red: 0.48, green: 0.16, blue: 0.025, alpha: 1)
+            case "hair": partColor = UIColor(red: 0.48, green: 0.16, blue: 0.025, alpha: 1)\n            case "trunk": partColor = UIColor.brown\n            case "leaf": partColor = .systemGreen\n            case "wall": partColor = UIColor(red: 0.78, green: 0.65, blue: 0.48, alpha: 1)\n            case "roof": partColor = .systemRed\n            case "door": partColor = UIColor.brown\n            case "car": partColor = .systemRed\n            case "glass": partColor = UIColor.cyan.withAlphaComponent(0.7)\n            case "tire": partColor = .darkGray
             default: partColor = UIColor(red: 0.55, green: 0.62, blue: 0.72, alpha: 1)
             }
             material.diffuse.contents = item.id == project.selectedID ? UIColor.systemBlue : partColor
@@ -473,8 +483,7 @@ struct StudioViewport: UIViewRepresentable {
             material.isDoubleSided = true
             geometry.materials = [material]
             let meshNode = SCNNode(geometry: geometry)
-            meshNode.name = item.id.uuidString
-            scene.rootNode.addChildNode(meshNode)
+            meshNode.name = item.id.uuidString\n            meshNode.isHidden = item.isAvatarAsset && !project.isPlaying\n            scene.rootNode.addChildNode(meshNode)
         }
         return scene
     }
