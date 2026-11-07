@@ -17,7 +17,7 @@ struct ContentView: View {
                         Text("FILE").font(.system(size: 13, weight: .bold))
                         Spacer()
                         Text("RobloxStudioMobile").font(.system(size: 13, weight: .semibold)).foregroundColor(.secondary)
-                        Button { showPlaceImporter = true } label: { Label("Open .rbxlx", systemImage: "folder").font(.system(size: 12, weight: .bold)).padding(8).background(Color.blue).cornerRadius(7) }.foregroundColor(.white)
+                        Button { showPlaceImporter = true } label: { Label("Open Place", systemImage: "folder").font(.system(size: 12, weight: .bold)).padding(8).background(Color.blue).cornerRadius(7) }.foregroundColor(.white)
                     }
                     .padding(.horizontal, 22).padding(.vertical, 15)
                     Divider()
@@ -50,7 +50,7 @@ struct ContentView: View {
                 let scoped = url.startAccessingSecurityScopedResource()
                 defer { if scoped { url.stopAccessingSecurityScopedResource() } }
                 guard url.pathExtension.lowercased() == "rbxlx" else {
-                    importMessage = "Binary .rbxl import is not supported yet; choose an XML .rbxlx place file."
+                    importMessage = "This is a binary .rbxl place. The app can select .rbxl files, but its binary place decoder is not implemented yet. Open an .rbxlx XML place for now."
                     return
                 }
                 let data = try Data(contentsOf: url)
