@@ -49,12 +49,17 @@ struct ContentView: View {
                 guard let url = urls.first else { return }
                 let scoped = url.startAccessingSecurityScopedResource()
                 defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-                guard url.pathExtension.lowercased() == "rbxlx" else {
-                    importMessage = "This is a binary .rbxl place. The app can select .rbxl files, but its binary place decoder is not implemented yet. Open an .rbxlx XML place for now."
+                let data = try Data(contentsOf: url)
+                let fileName = url.deletingPathExtension().lastPathComponent
+                switch url.pathExtension.lowercased() {
+                case "rbxl":
+                    project = try StudioProject.importRBXL(data, name: fileName)
+                case "rbxlx", "xml":
+                    project = try StudioProject.importRBXLX(data, name: fileName)
+                default:
+                    importMessage = "Choose a Roblox .rbxl or .rbxlx place file."
                     return
                 }
-                let data = try Data(contentsOf: url)
-                project = try StudioProject.importRBXLX(data, name: url.deletingPathExtension().lastPathComponent)
                 selectedSection = "New"
             } catch {
                 importMessage = "Could not open place: " + error.localizedDescription
