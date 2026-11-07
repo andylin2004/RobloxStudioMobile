@@ -194,6 +194,28 @@ struct StudioViewport: UIViewRepresentable {
         }
     }
 
+    private func makeStudTexture() -> UIImage {
+        let size = CGSize(width: 128, height: 128)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { context in
+            UIColor(red: 0.39, green: 0.43, blue: 0.50, alpha: 1).setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+            for row in 0..<8 {
+                for column in 0..<8 {
+                    let rect = CGRect(x: CGFloat(column) * 16 + 3, y: CGFloat(row) * 16 + 3, width: 10, height: 10)
+                    UIColor(red: 0.29, green: 0.33, blue: 0.40, alpha: 1).setFill()
+                    UIBezierPath(roundedRect: rect.offsetBy(dx: 1, dy: 1), cornerRadius: 2).fill()
+                    UIColor(red: 0.57, green: 0.61, blue: 0.68, alpha: 1).setFill()
+                    UIBezierPath(roundedRect: rect, cornerRadius: 2).fill()
+                    UIColor.white.withAlphaComponent(0.22).setStroke()
+                    let highlight = UIBezierPath(roundedRect: rect.insetBy(dx: 1, dy: 1), cornerRadius: 1.5)
+                    highlight.lineWidth = 0.7
+                    highlight.stroke()
+                }
+            }
+        }
+    }
+
     private func makeScene() -> SCNScene {
         let scene = SCNScene()
         scene.background.contents = UIColor(red: 0.43, green: 0.62, blue: 0.78, alpha: 1)
@@ -245,8 +267,22 @@ struct StudioViewport: UIViewRepresentable {
             }
             let material = SCNMaterial()
             material.diffuse.contents = item.id == project.selectedID ? UIColor.systemBlue : UIColor(red: 0.55, green: 0.62, blue: 0.72, alpha: 1)
+            material.roughness.contents = 0.82
+            material.metalness.contents = 0.02
             material.transparency = 1 - CGFloat(item.transparency)
-            geometry.materials = [material]
+            if item.name.localizedCaseInsensitiveContains("baseplate") {
+                let top = SCNMaterial()
+                top.diffuse.contents = makeStudTexture()
+                top.diffuse.wrapS = .repeat
+                top.diffuse.wrapT = .repeat
+                top.diffuse.contentsTransform = SCNMatrix4MakeScale(18, 18, 1)
+                top.roughness.contents = 0.92
+                let side = SCNMaterial()
+                side.diffuse.contents = UIColor(red: 0.39, green: 0.43, blue: 0.50, alpha: 1)
+                geometry.materials = [side, side, top, side, side, side]
+            } else {
+                geometry.materials = [material]
+            }
             let node = SCNNode(geometry: geometry)
             node.name = item.id.uuidString
             node.position = SCNVector3(Float(item.x), Float(item.y), Float(item.z))
