@@ -35,6 +35,7 @@ final class StudioProject: ObservableObject, Identifiable {
     @Published var cameraTargetZ: Double = 0
     @Published var cameraYaw: Double = 0.735
     @Published var cameraPitch: Double = 0
+    @Published var cameraDistance: Double = 57
     @Published var isPlaying = false
     @Published var playerOffsetX: Double = 0
     @Published var playerOffsetZ: Double = 0
@@ -49,6 +50,10 @@ final class StudioProject: ObservableObject, Identifiable {
     func rotateViewport(_ x: Double, _ y: Double) {
         cameraYaw += x
         cameraPitch = min(0.85, max(-0.45, cameraPitch + y))
+    }
+
+    func zoomViewport(_ amount: Double) {
+        cameraDistance = min(240, max(5, cameraDistance + amount))
     }
 
     let services = ["Workspace", "Players", "Lighting", "ReplicatedStorage", "ServerScriptService", "ServerStorage", "StarterGui", "StarterPack", "StarterPlayer", "SoundService", "Teams"]
@@ -279,7 +284,7 @@ struct StudioViewport: UIViewRepresentable {
     private func updateCamera(in scene: SCNScene?) {
         guard let cameraNode = scene?.rootNode.childNode(withName: "StudioCamera", recursively: false) else { return }
         let hasCharacter = project.nodes.contains { $0.isAvatarAsset }
-        let distance: Double = hasCharacter ? 16 : 57
+        let distance: Double = project.cameraDistance
         let targetY: Double = hasCharacter ? 3.2 : 0
         let horizontal = distance * cos(project.cameraPitch)
         if project.isPlaying {
