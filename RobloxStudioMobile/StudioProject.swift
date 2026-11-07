@@ -2,7 +2,6 @@ import Foundation
 import SwiftUI
 import SceneKit
 import UIKit
-import FoundationXML
 
 struct StudioNode: Identifiable, Codable, Equatable {
     var id: UUID = UUID()
