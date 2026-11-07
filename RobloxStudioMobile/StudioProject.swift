@@ -226,6 +226,9 @@ struct StudioViewport: UIViewRepresentable {
 
     func updateUIView(_ view: SCNView, context: Context) {
         context.coordinator.view = view
+        view.isPlaying = project.isPlaying
+        view.rendersContinuously = project.isPlaying
+        view.allowsCameraControl = !project.isPlaying
         view.scene?.rootNode.childNode(withName: "R6CharacterRoot", recursively: false)?.position = SCNVector3(Float(project.playerOffsetX), 0, Float(project.playerOffsetZ))
         if context.coordinator.lastNodes != project.nodes ||
             context.coordinator.lastSelectedID != project.selectedID ||
