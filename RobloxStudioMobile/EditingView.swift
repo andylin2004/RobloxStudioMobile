@@ -204,9 +204,7 @@ struct EditingView: View {
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 7) {
                     ForEach(toolboxItems.filter { toolboxSearch.isEmpty || $0.0.localizedCaseInsensitiveContains(toolboxSearch) }, id: \.0) { item in
                         Button {
-                            switch item.0 {
                             project.insertToolboxItem(item.0)
-                            }
                         } label: {
                             VStack(spacing: 5) {
                                 ZStack {
