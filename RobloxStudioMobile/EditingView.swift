@@ -33,6 +33,14 @@ struct EditingView: View {
                         }.padding(9).background(Color(red: 0.94, green: 0.95, blue: 0.97))
                         ZStack(alignment: .bottom) {
                             StudioViewport(project: project)
+                            VStack {
+                                HStack { Spacer(); VStack(spacing: 5) {
+                                    Button { project.zoomViewport(-6) } label: { Image(systemName: "plus.magnifyingglass").frame(width: 40, height: 40).background(Color.black.opacity(0.45)).cornerRadius(8) }
+                                    Button { project.zoomViewport(6) } label: { Image(systemName: "minus.magnifyingglass").frame(width: 40, height: 40).background(Color.black.opacity(0.45)).cornerRadius(8) }
+                                    Button { project.cameraDistance = 57; project.cameraPitch = 0; project.cameraYaw = 0.735 } label: { Image(systemName: "viewfinder").frame(width: 40, height: 40).background(Color.black.opacity(0.45)).cornerRadius(8) }
+                                }.foregroundColor(.white) }
+                                Spacer()
+                            }.padding(12)
                             HStack(alignment: .bottom) {
                                 TouchJoystick(title: "MOVE") { vector in
                                     if project.isPlaying { project.movePlayer(-Double(vector.x) * 0.18, Double(vector.y) * 0.18) } else { project.moveViewport(-Double(vector.x) * 0.42, Double(vector.y) * 0.42) }
