@@ -607,3 +607,260 @@ private final class StudioXMLImportDelegate: NSObject, XMLParserDelegate {
         if ["X", "Y", "Z"].contains(elementName) { text = "" }
     }
 }
+
+
+// Defensive version-0 RBXL reader. It decodes instance tables, parent links and common Part properties.
+// Unknown PROP chunks are skipped safely because each property is stored in its own framed chunk.
+private enum RobloxBinaryPlaceImporter {
+    private struct Reader {
+        let b: [UInt8]
+        var p = 0
+        var left: Int { b.count - p }
+        mutating func take(_ n: Int) throws -> [UInt8] {
+            guard n >= 0, n <= left else { throw err("Truncated binary place file.") }
+            let v = Array(b[p..<(p+n)]); p += n; return v
+        }
+        mutating func byte() throws -> UInt8 { try take(1)[0] }
+        mutating func u32() throws -> UInt32 {
+            let v = try take(4)
+            return UInt32(v[0]) | UInt32(v[1]) << 8 | UInt32(v[2]) << 16 | UInt32(v[3]) << 24
+        }
+        mutating func i32() throws -> Int32 { Int32(bitPattern: try u32()) }
+        mutating func string() throws -> String {
+            let n = Int(try u32())
+            guard n <= 16_777_216 else { throw err("Invalid string length in binary place.") }
+            return String(decoding: try take(n), as: UTF8.self)
+        }
+        func err(_ s: String) -> NSError {
+            NSError(domain: "RobloxStudioMobile.RBXL", code: 50, userInfo: [NSLocalizedDescriptionKey: s])
+        }
+    }
+    private struct Item {
+        var node: StudioNode
+        var service: Bool
+    }
+
+    static func decode(_ data: Data) throws -> [StudioNode] {
+        let bytes = [UInt8](data)
+        let sig: [UInt8] = [60,114,111,98,108,111,120,33,137,255,13,10,26,10]
+        guard bytes.count >= 32, Array(bytes.prefix(14)) == sig else {
+            throw NSError(domain: "RobloxStudioMobile.RBXL", code: 51, userInfo: [NSLocalizedDescriptionKey: "Invalid binary .rbxl signature."])
+        }
+        guard bytes.count <= 100 * 1024 * 1024 else {
+            throw NSError(domain: "RobloxStudioMobile.RBXL", code: 52, userInfo: [NSLocalizedDescriptionKey: "This file exceeds the current 100 MB import limit."])
+        }
+        var h = Reader(b: bytes, p: 14)
+        let version = try h.u32() & 0xffff
+        let classCount = try h.u32()
+        let totalCount = try h.u32()
+        _ = try h.take(8)
+        guard version == 0 else { throw h.err("Unsupported RBXL binary version.") }
+        guard classCount <= 100_000, totalCount <= 1_000_000 else { throw h.err("The place declares too many objects to load safely.") }
+
+        var groups: [Int32: [Int32]] = [:]
+        var classes: [Int32: String] = [:]
+        var objects: [Int32: Item] = [:]
+        var parents: [Int32: Int32] = [:]
+        var pos = 32
+        var ended = false
+
+        while pos + 16 <= bytes.count {
+            let tag = String(decoding: bytes[pos..<(pos+4)], as: UTF8.self)
+            func readLE(_ at: Int) -> Int {
+                Int(UInt32(bytes[at]) | UInt32(bytes[at+1]) << 8 | UInt32(bytes[at+2]) << 16 | UInt32(bytes[at+3]) << 24)
+            }
+            let packed = readLE(pos+4), expanded = readLE(pos+8)
+            pos += 16
+            let stored = packed == 0 ? expanded : packed
+            guard stored >= 0, expanded >= 0, stored <= bytes.count-pos, expanded <= 128*1024*1024 else { throw h.err("Invalid binary chunk length.") }
+            let raw = Array(bytes[pos..<(pos+stored)]); pos += stored
+            let payload: [UInt8]
+            if packed == 0 { payload = raw }
+            else {
+                if raw.count >= 4 && raw[0] == 0x28 && raw[1] == 0xb5 && raw[2] == 0x2f && raw[3] == 0xfd {
+                    throw h.err("This place uses Zstandard compression. The current importer supports legacy LZ4 chunks, not Zstandard yet.")
+                }
+                payload = try lz4(raw, size: expanded)
+            }
+
+            switch tag {
+            case "INST":
+                var r = Reader(b: payload)
+                let id = try r.i32()
+                let cls = try r.string()
+                let hasFlags = try r.byte() != 0
+                let count = Int(try r.u32())
+                guard count <= 1_000_000 else { throw r.err("Instance group is too large.") }
+                let refs = try references(&r, count)
+                var flags = [Bool](repeating: false, count: count)
+                if hasFlags { for i in 0..<count { flags[i] = try r.byte() != 0 } }
+                groups[id] = refs; classes[id] = cls
+                for i in refs.indices {
+                    var node = StudioNode(name: cls, className: cls)
+                    if cls == "WedgePart" || cls == "CornerWedgePart" { node.shape = "Wedge" }
+                    if cls == "Ball" { node.shape = "Sphere" }
+                    if cls == "Cylinder" { node.shape = "Cylinder" }
+                    objects[refs[i]] = Item(node: node, service: flags[i])
+                }
+            case "PROP":
+                var r = Reader(b: payload)
+                let id = try r.i32()
+                let prop = try r.string()
+                let type = try r.byte()
+                guard let refs = groups[id], let cls = classes[id] else { continue }
+                let basePart = ["Part","WedgePart","CornerWedgePart","TrussPart","SpawnLocation","Seat","VehicleSeat","MeshPart","UnionOperation"].contains(cls)
+                let wanted = prop == "Name" ||
+                    (basePart && ["CFrame","Size","Anchored","CanCollide","Transparency","Shape"].contains(prop)) ||
+                    (["Script","LocalScript","ModuleScript"].contains(cls) && prop == "Source")
+                guard wanted else { continue }
+                switch type {
+                case 1:
+                    for ref in refs {
+                        let value = try r.string()
+                        if var item = objects[ref] {
+                            if prop == "Name" { item.node.name = value }
+                            if prop == "Source" { item.node.source = value }
+                            objects[ref] = item
+                        }
+                    }
+                case 2:
+                    for ref in refs {
+                        let value = try r.byte() != 0
+                        if var item = objects[ref] {
+                            if prop == "Anchored" { item.node.anchored = value }
+                            if prop == "CanCollide" { item.node.canCollide = value }
+                            objects[ref] = item
+                        }
+                    }
+                case 4:
+                    let v = try floats(&r, refs.count)
+                    for (i, ref) in refs.enumerated() {
+                        if var item = objects[ref] {
+                            if prop == "Transparency" { item.node.transparency = Double(min(1, max(0, v[i]))) }
+                            objects[ref] = item
+                        }
+                    }
+                case 14:
+                    let x = try floats(&r, refs.count), y = try floats(&r, refs.count), z = try floats(&r, refs.count)
+                    for (i, ref) in refs.enumerated() {
+                        if var item = objects[ref] {
+                            if prop == "Size" {
+                                item.node.width = max(0.05, Double(x[i]))
+                                item.node.height = max(0.05, Double(y[i]))
+                                item.node.depth = max(0.05, Double(z[i]))
+                            }
+                            objects[ref] = item
+                        }
+                    }
+                case 16:
+                    for _ in refs { if try r.byte() == 0 { _ = try r.take(36) } }
+                    let x = try floats(&r, refs.count), y = try floats(&r, refs.count), z = try floats(&r, refs.count)
+                    for (i, ref) in refs.enumerated() {
+                        if var item = objects[ref] {
+                            if prop == "CFrame" { item.node.x = Double(x[i]); item.node.y = Double(y[i]); item.node.z = Double(z[i]) }
+                            objects[ref] = item
+                        }
+                    }
+                case 18:
+                    let tokens = try interleaved(&r, refs.count)
+                    for (i, ref) in refs.enumerated() {
+                        if var item = objects[ref] {
+                            if prop == "Shape" {
+                                item.node.shape = tokens[i] == 0 ? "Sphere" : (tokens[i] == 2 ? "Cylinder" : ((tokens[i] == 3 || tokens[i] == 4) ? "Wedge" : "Block"))
+                            }
+                            objects[ref] = item
+                        }
+                    }
+                default:
+                    break
+                }
+            case "PRNT":
+                var r = Reader(b: payload)
+                _ = try r.byte()
+                let count = Int(try r.u32())
+                guard count <= 1_000_000 else { throw r.err("Parent table is too large.") }
+                let children = try references(&r, count), owners = try references(&r, count)
+                for i in 0..<min(children.count, owners.count) { parents[children[i]] = owners[i] }
+            case "END.":
+                ended = true
+            default:
+                break
+            }
+            if ended { break }
+        }
+        guard ended else { throw h.err("The binary place is incomplete; its END chunk is missing.") }
+
+        func serviceOf(_ start: Int32) -> String {
+            var current = start
+            var seen = Set<Int32>()
+            while seen.insert(current).inserted, let item = objects[current] {
+                if item.service { return item.node.name }
+                guard let parent = parents[current], parent >= 0 else { break }
+                current = parent
+            }
+            return "Workspace"
+        }
+        return objects.keys.sorted().compactMap { ref in
+            guard var item = objects[ref] else { return nil }
+            let cls = item.node.className
+            if ["Part","WedgePart","CornerWedgePart","TrussPart","SpawnLocation","Seat","VehicleSeat","MeshPart","UnionOperation"].contains(cls) {
+                item.node.className = "Part"
+                if cls == "WedgePart" || cls == "CornerWedgePart" { item.node.shape = "Wedge" }
+            }
+            item.node.service = serviceOf(ref)
+            return item.node
+        }
+    }
+
+    private static func interleaved(_ r: inout Reader, _ n: Int) throws -> [UInt32] {
+        guard n >= 0, n <= 1_000_000 else { throw r.err("Invalid array length.") }
+        let b = try r.take(n*4)
+        return (0..<n).map { i in
+            UInt32(b[i]) << 24 | UInt32(b[n+i]) << 16 | UInt32(b[2*n+i]) << 8 | UInt32(b[3*n+i])
+        }
+    }
+    private static func references(_ r: inout Reader, _ n: Int) throws -> [Int32] {
+        var previous: Int32 = 0
+        return try interleaved(&r, n).map { value in
+            let delta = Int32(bitPattern: (value >> 1) ^ (0 &- (value & 1)))
+            previous = previous &+ delta
+            return previous
+        }
+    }
+    private static func floats(_ r: inout Reader, _ n: Int) throws -> [Float] {
+        try interleaved(&r, n).map { value in
+            Float(bitPattern: (value >> 1) | ((value & 1) << 31))
+        }
+    }
+    private static func lz4(_ input: [UInt8], size: Int) throws -> [UInt8] {
+        var out = [UInt8](); out.reserveCapacity(size)
+        var i = 0
+        func length(_ base: Int, _ bytes: [UInt8], _ cursor: inout Int) throws -> Int {
+            var result = base
+            if base == 15 {
+                while true {
+                    guard cursor < bytes.count else { throw NSError(domain: "RobloxStudioMobile.RBXL", code: 60, userInfo: [NSLocalizedDescriptionKey: "Invalid LZ4 length."]) }
+                    let next = Int(bytes[cursor]); cursor += 1; result += next
+                    if next != 255 { break }
+                }
+            }
+            return result
+        }
+        while i < input.count {
+            let token = input[i]; i += 1
+            let literals = try length(Int(token >> 4), input, &i)
+            guard literals <= input.count-i, out.count+literals <= size else { throw NSError(domain: "RobloxStudioMobile.RBXL", code: 61, userInfo: [NSLocalizedDescriptionKey: "Invalid LZ4 literal run."]) }
+            out.append(contentsOf: input[i..<(i+literals)]); i += literals
+            if i == input.count { break }
+            guard i+2 <= input.count else { throw NSError(domain: "RobloxStudioMobile.RBXL", code: 62, userInfo: [NSLocalizedDescriptionKey: "Truncated LZ4 match."]) }
+            let distance = Int(input[i]) | Int(input[i+1]) << 8; i += 2
+            guard distance > 0, distance <= out.count else { throw NSError(domain: "RobloxStudioMobile.RBXL", code: 63, userInfo: [NSLocalizedDescriptionKey: "Invalid LZ4 back-reference."]) }
+            let count = try length(Int(token & 15), input, &i) + 4
+            guard out.count+count <= size else { throw NSError(domain: "RobloxStudioMobile.RBXL", code: 64, userInfo: [NSLocalizedDescriptionKey: "LZ4 chunk expands beyond its declared size."]) }
+            for _ in 0..<count { out.append(out[out.count-distance]) }
+        }
+        guard out.count == size else { throw NSError(domain: "RobloxStudioMobile.RBXL", code: 65, userInfo: [NSLocalizedDescriptionKey: "LZ4 chunk size does not match its header."]) }
+        return out
+    }
+}
+
