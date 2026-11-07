@@ -254,6 +254,9 @@ struct StudioViewport: UIViewRepresentable {
         view.scene = makeScene()
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.selectNode(_:)))
         view.addGestureRecognizer(tap)
+        let scalePan = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleScalePan(_:)))
+        scalePan.delegate = context.coordinator
+        view.addGestureRecognizer(scalePan)
         context.coordinator.view = view
         return view
     }
@@ -332,7 +335,7 @@ struct StudioViewport: UIViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(project: project) }
 
-    final class Coordinator: NSObject {
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         let project: StudioProject
         weak var view: SCNView?
         var lastNodes: [StudioNode]?
@@ -340,7 +343,23 @@ struct StudioViewport: UIViewRepresentable {
         var lastIsPlaying = false
         var lastIsMoving = false
         var lastJumpCount = 0
+        var lastScaleTranslation = CGPoint.zero
         init(project: StudioProject) { self.project = project }
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            project.activeTool == "Scale" && !project.isPlaying && project.selectedID != nil
+        }
+        @objc func handleScalePan(_ gesture: UIPanGestureRecognizer) {
+            guard project.activeTool == "Scale", !project.isPlaying else { return }
+            let translation = gesture.translation(in: gesture.view)
+            if gesture.state == .began { lastScaleTranslation = .zero }
+            if gesture.state == .changed {
+                let dx = translation.x - lastScaleTranslation.x
+                let dy = translation.y - lastScaleTranslation.y
+                lastScaleTranslation = translation
+                project.scaleSelectedBy(horizontal: Double(dx) * 0.025, vertical: Double(-dy) * 0.025)
+            }
+            if gesture.state == .ended || gesture.state == .cancelled { lastScaleTranslation = .zero }
+        }
         @objc func selectNode(_ gesture: UITapGestureRecognizer) {
             guard let view = view else { return }
             let point = gesture.location(in: view)
