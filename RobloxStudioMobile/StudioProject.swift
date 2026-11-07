@@ -621,6 +621,7 @@ private enum RobloxBinaryPlaceImporter {
             let v = Array(b[p..<(p+n)]); p += n; return v
         }
         mutating func byte() throws -> UInt8 { try take(1)[0] }
+        mutating func u16() throws -> UInt16 { let v = try take(2); return UInt16(v[0]) | UInt16(v[1]) << 8 }
         mutating func u32() throws -> UInt32 {
             let v = try take(4)
             return UInt32(v[0]) | UInt32(v[1]) << 8 | UInt32(v[2]) << 16 | UInt32(v[3]) << 24
@@ -650,7 +651,7 @@ private enum RobloxBinaryPlaceImporter {
             throw NSError(domain: "RobloxStudioMobile.RBXL", code: 52, userInfo: [NSLocalizedDescriptionKey: "This file exceeds the current 100 MB import limit."])
         }
         var h = Reader(b: bytes, p: 14)
-        let version = try h.u32() & 0xffff
+        let version = try h.u16()
         let classCount = try h.u32()
         let totalCount = try h.u32()
         _ = try h.take(8)
