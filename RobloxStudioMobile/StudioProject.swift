@@ -37,6 +37,7 @@ final class StudioProject: ObservableObject, Identifiable {
     @Published var isPlaying = false
     @Published var playerOffsetX: Double = 0
     @Published var playerOffsetZ: Double = 0
+    @Published var isMoving = false
 
     func moveViewport(_ x: Double, _ z: Double) {
         cameraTargetX += x
@@ -73,6 +74,7 @@ final class StudioProject: ObservableObject, Identifiable {
     func togglePlay() {
         isPlaying.toggle()
         if !isPlaying {
+            isMoving = false
             playerOffsetX = 0
             playerOffsetZ = 0
         }
@@ -80,6 +82,7 @@ final class StudioProject: ObservableObject, Identifiable {
 
     func movePlayer(_ x: Double, _ z: Double) {
         guard isPlaying else { return }
+        isMoving = abs(x) + abs(z) > 0.001
         playerOffsetX += x
         playerOffsetZ += z
     }
@@ -215,8 +218,30 @@ struct StudioViewport: UIViewRepresentable {
         } else {
             updateCamera(in: view.scene)
         }
+        updateCharacterAnimation(in: view.scene, coordinator: context.coordinator)
     }
 
+    private func updateCharacterAnimation(in scene: SCNScene?, coordinator: Coordinator) {
+        guard coordinator.lastIsPlaying != project.isPlaying || coordinator.lastIsMoving != project.isMoving else { return }
+        coordinator.lastIsPlaying = project.isPlaying
+        coordinator.lastIsMoving = project.isMoving
+        for partName in ["R6_LeftArm", "R6_RightArm", "R6_LeftLeg", "R6_RightLeg"] {
+            guard let item = project.nodes.first(where: { $0.name == partName }),
+                  let node = scene?.rootNode.childNode(withName: item.id.uuidString, recursively: true) else { continue }
+            node.removeAllActions()
+            guard project.isPlaying else { node.eulerAngles.x = 0; continue }
+            let moving = project.isMoving
+            let isLeft = partName.contains("Left")
+            let isLeg = partName.contains("Leg")
+            let direction: CGFloat = (isLeft == isLeg) ? 1 : -1
+            let swing: CGFloat = moving ? 0.48 : 0.035
+            let first = SCNAction.rotateTo(x: swing * direction, y: 0, z: 0, duration: moving ? 0.24 : 1.1, usesShortestUnitArc: true)
+            let second = SCNAction.rotateTo(x: -swing * direction, y: 0, z: 0, duration: moving ? 0.24 : 1.1, usesShortestUnitArc: true)
+            first.timingMode = .easeInEaseOut
+            second.timingMode = .easeInEaseOut
+            node.runAction(SCNAction.repeatForever(SCNAction.sequence([first, second])), forKey: "R6Walk")
+        }
+    }
     private func updateCamera(in scene: SCNScene?) {
         guard let cameraNode = scene?.rootNode.childNode(withName: "StudioCamera", recursively: false) else { return }
         let hasCharacter = project.nodes.contains { $0.className == "MeshPart" || $0.name == "R6_Head" }
@@ -238,6 +263,8 @@ struct StudioViewport: UIViewRepresentable {
         weak var view: SCNView?
         var lastNodes: [StudioNode]?
         var lastSelectedID: UUID?
+        var lastIsPlaying = false
+        var lastIsMoving = false
         init(project: StudioProject) { self.project = project }
         @objc func selectNode(_ gesture: UITapGestureRecognizer) {
             guard let view = view else { return }
@@ -282,9 +309,9 @@ struct StudioViewport: UIViewRepresentable {
         camera.fieldOfView = 55
         cameraNode.camera = camera
         cameraNode.name = "StudioCamera"
-        let hasImportedMesh = project.nodes.contains { $0.className == "MeshPart" }
-        let distance: Double = hasImportedMesh ? 15 : 57
-        let targetY: Double = hasImportedMesh ? 3.3 : 0
+        let hasCharacter = project.nodes.contains { $0.className == "MeshPart" || $0.name == "R6_Head" }
+        let distance: Double = hasCharacter ? 16 : 57
+        let targetY: Double = hasCharacter ? 3.2 : 0
         let horizontal = distance * cos(project.cameraPitch)
         cameraNode.position = SCNVector3(Float(project.cameraTargetX + sin(project.cameraYaw) * horizontal), Float(targetY + 8 + sin(project.cameraPitch) * distance), Float(project.cameraTargetZ + cos(project.cameraYaw) * horizontal))
         cameraNode.look(at: SCNVector3(Float(project.cameraTargetX), Float(targetY), Float(project.cameraTargetZ)))
@@ -326,7 +353,7 @@ struct StudioViewport: UIViewRepresentable {
             case "Sphere": geometry = SCNSphere(radius: CGFloat(max(item.width, max(item.height, item.depth)) / 2))
             case "Cylinder": geometry = SCNCylinder(radius: CGFloat(item.width / 2), height: CGFloat(item.height))
             case "Wedge": geometry = SCNPyramid(width: CGFloat(item.width), height: CGFloat(item.height), length: CGFloat(item.depth))
-            default: geometry = SCNBox(width: CGFloat(item.width), height: CGFloat(item.height), length: CGFloat(item.depth), chamferRadius: 0.04)
+            default: geometry = SCNBox(width: CGFloat(item.width), height: CGFloat(item.height), length: CGFloat(item.depth), chamferRadius: item.name.contains("Hair") ? 0.16 : 0.04)
             }
             let material = SCNMaterial()
             let partColor: UIColor
