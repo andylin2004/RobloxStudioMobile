@@ -38,6 +38,7 @@ final class StudioProject: ObservableObject, Identifiable {
     @Published var playerOffsetX: Double = 0
     @Published var playerOffsetZ: Double = 0
     @Published var isMoving = false
+    @Published var jumpCount = 0
 
     func moveViewport(_ x: Double, _ z: Double) {
         cameraTargetX += x
@@ -79,6 +80,8 @@ final class StudioProject: ObservableObject, Identifiable {
             playerOffsetZ = 0
         }
     }
+
+    func jumpPlayer() { if isPlaying { jumpCount += 1 } }
 
     func movePlayer(_ x: Double, _ z: Double) {
         guard isPlaying else { return }
@@ -219,6 +222,16 @@ struct StudioViewport: UIViewRepresentable {
             updateCamera(in: view.scene)
         }
         updateCharacterAnimation(in: view.scene, coordinator: context.coordinator)
+        if context.coordinator.lastJumpCount != project.jumpCount {
+            context.coordinator.lastJumpCount = project.jumpCount
+            if let root = view.scene?.rootNode.childNode(withName: "R6CharacterRoot", recursively: false) {
+                let up = SCNAction.moveBy(x: 0, y: 1.8, z: 0, duration: 0.22)
+                let down = SCNAction.moveBy(x: 0, y: -1.8, z: 0, duration: 0.26)
+                up.timingMode = .easeOut
+                down.timingMode = .easeIn
+                root.runAction(SCNAction.sequence([up, down]), forKey: "R6Jump")
+            }
+        }
     }
 
     private func updateCharacterAnimation(in scene: SCNScene?, coordinator: Coordinator) {
@@ -265,6 +278,7 @@ struct StudioViewport: UIViewRepresentable {
         var lastSelectedID: UUID?
         var lastIsPlaying = false
         var lastIsMoving = false
+        var lastJumpCount = 0
         init(project: StudioProject) { self.project = project }
         @objc func selectNode(_ gesture: UITapGestureRecognizer) {
             guard let view = view else { return }
