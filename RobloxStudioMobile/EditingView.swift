@@ -38,9 +38,12 @@ struct EditingView: View {
                                     if project.isPlaying { project.movePlayer(-Double(vector.x) * 0.18, Double(vector.y) * 0.18) } else { project.moveViewport(-Double(vector.x) * 0.42, Double(vector.y) * 0.42) }
                                 }
                                 Spacer()
-                                TouchJoystick(title: "LOOK") { vector in
-                                    project.rotateViewport(Double(vector.x) * 0.035, Double(vector.y) * 0.025)
-                                }
+                                Button { project.jumpPlayer() } label: {
+                                    ZStack {
+                                        Circle().fill(Color.black.opacity(0.34)).overlay(Circle().stroke(Color.white.opacity(0.65), lineWidth: 2))
+                                        Image(systemName: "arrow.up").font(.system(size: 34, weight: .bold)).foregroundColor(.white)
+                                    }.frame(width: 104, height: 104)
+                                }.buttonStyle(PlainButtonStyle()).disabled(!project.isPlaying).opacity(project.isPlaying ? 1 : 0.7)
                             }.padding(18)
                         }
                     }
