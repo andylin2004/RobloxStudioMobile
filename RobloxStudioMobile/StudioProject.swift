@@ -19,6 +19,8 @@ struct StudioNode: Identifiable, Codable, Equatable {
     var transparency: Double = 0
     var source: String = ""
     var service: String = "Workspace"
+    var meshOBJ: String = ""
+    var meshTextureData: Data? = nil
 }
 
 final class StudioProject: ObservableObject, Identifiable {
@@ -168,14 +170,16 @@ struct StudioViewport: UIViewRepresentable {
 
     private func updateCamera(in scene: SCNScene?) {
         guard let cameraNode = scene?.rootNode.childNode(withName: "StudioCamera", recursively: false) else { return }
-        let distance: Double = 57
+        let hasImportedMesh = project.nodes.contains { $0.className == "MeshPart" }
+        let distance: Double = hasImportedMesh ? 15 : 57
+        let targetY: Double = hasImportedMesh ? 3.3 : 0
         let horizontal = distance * cos(project.cameraPitch)
         cameraNode.position = SCNVector3(
             Float(project.cameraTargetX + sin(project.cameraYaw) * horizontal),
-            Float(32 + sin(project.cameraPitch) * distance),
+            Float(targetY + 8 + sin(project.cameraPitch) * distance),
             Float(project.cameraTargetZ + cos(project.cameraYaw) * horizontal)
         )
-        cameraNode.look(at: SCNVector3(Float(project.cameraTargetX), 0, Float(project.cameraTargetZ)))
+        cameraNode.look(at: SCNVector3(Float(project.cameraTargetX), Float(targetY), Float(project.cameraTargetZ)))
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(project: project) }
@@ -227,10 +231,12 @@ struct StudioViewport: UIViewRepresentable {
         camera.fieldOfView = 55
         cameraNode.camera = camera
         cameraNode.name = "StudioCamera"
-        let distance: Double = 57
+        let hasImportedMesh = project.nodes.contains { $0.className == "MeshPart" }
+        let distance: Double = hasImportedMesh ? 15 : 57
+        let targetY: Double = hasImportedMesh ? 3.3 : 0
         let horizontal = distance * cos(project.cameraPitch)
-        cameraNode.position = SCNVector3(Float(project.cameraTargetX + sin(project.cameraYaw) * horizontal), Float(32 + sin(project.cameraPitch) * distance), Float(project.cameraTargetZ + cos(project.cameraYaw) * horizontal))
-        cameraNode.look(at: SCNVector3(Float(project.cameraTargetX), 0, Float(project.cameraTargetZ)))
+        cameraNode.position = SCNVector3(Float(project.cameraTargetX + sin(project.cameraYaw) * horizontal), Float(targetY + 8 + sin(project.cameraPitch) * distance), Float(project.cameraTargetZ + cos(project.cameraYaw) * horizontal))
+        cameraNode.look(at: SCNVector3(Float(project.cameraTargetX), Float(targetY), Float(project.cameraTargetZ)))
         scene.rootNode.addChildNode(cameraNode)
 
         let ambient = SCNNode()
@@ -287,6 +293,71 @@ struct StudioViewport: UIViewRepresentable {
             node.name = item.id.uuidString
             node.position = SCNVector3(Float(item.x), Float(item.y), Float(item.z))
             scene.rootNode.addChildNode(node)
+        }
+        // Imported OBJ sections are rendered as independent selectable mesh instances.
+        for item in project.nodes where item.className == "MeshPart" && !item.meshOBJ.isEmpty {
+            let lines = item.meshOBJ.split(whereSeparator: \\.isNewline)
+            var vertices: [SCNVector3] = []
+            var faces: [[Int]] = []
+            for line in lines {
+                let fields = line.split(whereSeparator: \\.isWhitespace)
+                guard let kind = fields.first else { continue }
+                if kind == "v", fields.count >= 4,
+                   let x = Float(fields[1]), let y = Float(fields[2]), let z = Float(fields[3]) {
+                    // Center and scale the source character into the editor's Roblox-sized viewport.
+                    vertices.append(SCNVector3((x + 20) * 0.12, y * 0.12, (z - 75) * 0.12))
+                } else if kind == "f", fields.count >= 4 {
+                    let indices = fields.dropFirst().compactMap { token -> Int? in
+                        guard let first = token.split(separator: "/").first, let raw = Int(first) else { return nil }
+                        return raw > 0 ? raw - 1 : vertices.count + raw
+                    }
+                    if indices.count >= 3 { faces.append(indices) }
+                }
+            }
+            var positions: [SCNVector3] = []
+            var normals: [SCNVector3] = []
+            var uvs: [CGPoint] = []
+            var triangleIndices: [Int32] = []
+            for face in faces {
+                guard face.allSatisfy({ vertices.indices.contains($0) }) else { continue }
+                for corner in 1..<(face.count - 1) {
+                    let tri = [face[0], face[corner], face[corner + 1]]
+                    let a = vertices[tri[0]], b = vertices[tri[1]], c = vertices[tri[2]]
+                    let ab = SCNVector3(b.x-a.x, b.y-a.y, b.z-a.z)
+                    let ac = SCNVector3(c.x-a.x, c.y-a.y, c.z-a.z)
+                    var normal = SCNVector3(ab.y*ac.z-ab.z*ac.y, ab.z*ac.x-ab.x*ac.z, ab.x*ac.y-ab.y*ac.x)
+                    let length = max(0.0001, sqrt(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z))
+                    normal = SCNVector3(normal.x/length, normal.y/length, normal.z/length)
+                    for index in tri {
+                        let vertex = vertices[index]
+                        positions.append(vertex)
+                        normals.append(normal)
+                        // Front projection matches the supplied full-character atlas.
+                        let sourceX = vertex.x / 0.12 - 20
+                        let sourceY = vertex.y / 0.12
+                        uvs.append(CGPoint(x: min(1, max(0, (sourceX + 36) / 42)),
+                                           y: min(1, max(0, 1 - sourceY / 56))))
+                        triangleIndices.append(Int32(triangleIndices.count))
+                    }
+                }
+            }
+            guard !positions.isEmpty else { continue }
+            let vertexSource = SCNGeometrySource(vertices: positions)
+            let normalSource = SCNGeometrySource(normals: normals)
+            let uvSource = SCNGeometrySource(textureCoordinates: uvs)
+            let element = SCNGeometryElement(indices: triangleIndices, primitiveType: .triangles)
+            let geometry = SCNGeometry(sources: [vertexSource, normalSource, uvSource], elements: [element])
+            let material = SCNMaterial()
+            material.diffuse.contents = item.meshTextureData.flatMap { UIImage(data: $0) } ?? UIColor(red: 0.55, green: 0.28, blue: 0.08, alpha: 1)
+            material.diffuse.wrapS = .clamp
+            material.diffuse.wrapT = .clamp
+            material.lightingModel = .physicallyBased
+            material.roughness.contents = 0.72
+            material.isDoubleSided = true
+            geometry.materials = [material]
+            let meshNode = SCNNode(geometry: geometry)
+            meshNode.name = item.id.uuidString
+            scene.rootNode.addChildNode(meshNode)
         }
         return scene
     }
