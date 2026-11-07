@@ -37,6 +37,7 @@ final class StudioProject: ObservableObject, Identifiable {
     @Published var cameraPitch: Double = 0
     @Published var cameraDistance: Double = 57
     @Published var isPlaying = false
+    @Published var activeTool = "Select"
     @Published var playerOffsetX: Double = 0
     @Published var playerOffsetZ: Double = 0
     @Published var isMoving = false
@@ -79,14 +80,20 @@ final class StudioProject: ObservableObject, Identifiable {
 
     func togglePlay() {
         isPlaying.toggle()
-        if !isPlaying {
-            isMoving = false
-            playerOffsetX = 0
-            playerOffsetZ = 0
-        }
+        isMoving = false
+        playerOffsetX = 0
+        playerOffsetZ = 0
+        cameraDistance = isPlaying ? 14 : 57
     }
 
     func jumpPlayer() { if isPlaying { jumpCount += 1 } }
+
+    func scaleSelectedBy(horizontal: Double, vertical: Double) {
+        guard !isPlaying, let id = selectedID, let index = nodes.firstIndex(where: { $0.id == id }) else { return }
+        nodes[index].width = max(0.05, min(512, nodes[index].width + horizontal))
+        nodes[index].depth = max(0.05, min(512, nodes[index].depth + horizontal))
+        nodes[index].height = max(0.05, min(512, nodes[index].height + vertical))
+    }
 
     func movePlayer(_ x: Double, _ z: Double) {
         guard isPlaying else { return }
@@ -311,9 +318,9 @@ struct StudioViewport: UIViewRepresentable {
         let targetY: Double = hasCharacter ? 3.2 : 0
         let horizontal = distance * cos(project.cameraPitch)
         if project.isPlaying {
-            cameraNode.position = SCNVector3(Float(project.playerOffsetX), 4.9, Float(project.playerOffsetZ))
-            cameraNode.camera?.fieldOfView = 78
-            cameraNode.look(at: SCNVector3(Float(project.playerOffsetX), 4.9, Float(project.playerOffsetZ + 10)))
+            cameraNode.camera?.fieldOfView = 70
+            cameraNode.position = SCNVector3(Float(project.playerOffsetX), 7.0, Float(project.playerOffsetZ + 13))
+            cameraNode.look(at: SCNVector3(Float(project.playerOffsetX), 2.4, Float(project.playerOffsetZ)))
         } else {
             cameraNode.camera?.fieldOfView = 55
             cameraNode.position = SCNVector3(Float(project.cameraTargetX + sin(project.cameraYaw) * horizontal), Float(targetY + 8 + sin(project.cameraPitch) * distance), Float(project.cameraTargetZ + cos(project.cameraYaw) * horizontal))
@@ -539,8 +546,41 @@ struct StudioViewport: UIViewRepresentable {
             geometry.materials = [material]
             let meshNode = SCNNode(geometry: geometry)
             meshNode.name = item.id.uuidString
-            meshNode.isHidden = item.isAvatarAsset && !project.isPlaying
-            scene.rootNode.addChildNode(meshNode)
+            if item.isAvatarAsset {
+                var root = scene.rootNode.childNode(withName: "R6CharacterRoot", recursively: false)
+                if root == nil {
+                    root = SCNNode()
+                    root?.name = "R6CharacterRoot"
+                    scene.rootNode.addChildNode(root!)
+                }
+                root?.addChildNode(meshNode)
+            } else {
+                scene.rootNode.addChildNode(meshNode)
+            }
+        }
+        if !project.nodes.contains(where: { $0.isAvatarAsset && $0.className == "MeshPart" }) {
+            let root = SCNNode()
+            root.name = "R6CharacterRoot"
+            func part(_ name: String, _ w: CGFloat, _ h: CGFloat, _ d: CGFloat, _ x: Float, _ y: Float, _ z: Float, _ color: UIColor) -> SCNNode {
+                let geometry = SCNBox(width: w, height: h, length: d, chamferRadius: 0.04)
+                let material = SCNMaterial()
+                material.diffuse.contents = color
+                geometry.materials = [material]
+                let node = SCNNode(geometry: geometry)
+                node.name = name
+                node.position = SCNVector3(x, y, z)
+                return node
+            }
+            let skin = UIColor(red: 0.91, green: 0.72, blue: 0.56, alpha: 1)
+            let shirt = UIColor(red: 0.12, green: 0.42, blue: 0.86, alpha: 1)
+            let pants = UIColor(red: 0.12, green: 0.16, blue: 0.24, alpha: 1)
+            root.addChildNode(part("PlayerHead", 1, 1, 1, 0, 3.5, 0, skin))
+            root.addChildNode(part("PlayerTorso", 2, 2, 1, 0, 2, 0, shirt))
+            root.addChildNode(part("PlayerLeftArm", 1, 2, 1, -1.5, 2, 0, skin))
+            root.addChildNode(part("PlayerRightArm", 1, 2, 1, 1.5, 2, 0, skin))
+            root.addChildNode(part("PlayerLeftLeg", 1, 2, 1, -0.5, 0.5, 0, pants))
+            root.addChildNode(part("PlayerRightLeg", 1, 2, 1, 0.5, 0.5, 0, pants))
+            scene.rootNode.addChildNode(root)
         }
         updateCamera(in: scene)
         return scene
