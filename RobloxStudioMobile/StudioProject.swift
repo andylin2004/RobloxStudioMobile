@@ -176,6 +176,15 @@ final class StudioProject: ObservableObject, Identifiable {
     }
 
 
+    static func importRBXL(_ data: Data, name: String) throws -> StudioProject {
+        let nodes = try RobloxBinaryPlaceImporter.decode(data)
+        guard !nodes.isEmpty else { throw NSError(domain: "RobloxStudioMobile.Import", code: 20, userInfo: [NSLocalizedDescriptionKey: "No supported parts were found in this binary place."]) }
+        let project = StudioProject(name: name, template: "Baseplate")
+        project.nodes = nodes
+        project.selectedID = nodes.first?.id
+        return project
+    }
+
     static func importRBXLX(_ data: Data, name: String) throws -> StudioProject {
         let parser = XMLParser(data: data)
         let delegate = StudioXMLImportDelegate()
