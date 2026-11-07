@@ -21,6 +21,7 @@ struct StudioNode: Identifiable, Codable, Equatable {
     var service: String = "Workspace"
     var meshOBJ: String = ""
     var meshTextureData: Data? = nil
+    var materialColor: String = ""
 }
 
 final class StudioProject: ObservableObject, Identifiable {
@@ -33,6 +34,9 @@ final class StudioProject: ObservableObject, Identifiable {
     @Published var cameraTargetZ: Double = 0
     @Published var cameraYaw: Double = 0.735
     @Published var cameraPitch: Double = 0
+    @Published var isPlaying = false
+    @Published var playerOffsetX: Double = 0
+    @Published var playerOffsetZ: Double = 0
 
     func moveViewport(_ x: Double, _ z: Double) {
         cameraTargetX += x
@@ -62,6 +66,50 @@ final class StudioProject: ObservableObject, Identifiable {
         default:
             nodes = [StudioNode(name: "Baseplate", className: "Part", x: 0, y: -1, width: 512, height: 2, depth: 512)]
         }
+        addR6Rig()
+    }
+
+
+    func togglePlay() {
+        isPlaying.toggle()
+        if !isPlaying {
+            playerOffsetX = 0
+            playerOffsetZ = 0
+        }
+    }
+
+    func movePlayer(_ x: Double, _ z: Double) {
+        guard isPlaying else { return }
+        playerOffsetX += x
+        playerOffsetZ += z
+    }
+
+    func addR6Rig() {
+        guard !nodes.contains(where: { $0.name == "R6_Head" }) else { return }
+        let rig: [StudioNode] = [
+            StudioNode(name: "R6_LeftLeg", className: "Part", x: -0.5, y: 1.1, width: 1, height: 2.2, depth: 1, materialColor: "pants"),
+            StudioNode(name: "R6_RightLeg", className: "Part", x: 0.5, y: 1.1, width: 1, height: 2.2, depth: 1, materialColor: "pants"),
+            StudioNode(name: "R6_LeftFoot", className: "Part", x: -0.5, y: 0.12, width: 1, height: 0.24, depth: 1.05, materialColor: "white"),
+            StudioNode(name: "R6_RightFoot", className: "Part", x: 0.5, y: 0.12, width: 1, height: 0.24, depth: 1.05, materialColor: "white"),
+            StudioNode(name: "R6_Torso", className: "Part", x: 0, y: 3.25, width: 2, height: 2.1, depth: 1, materialColor: "blue"),
+            StudioNode(name: "R6_JacketLeft", className: "Part", x: -0.76, y: 3.25, width: 0.48, height: 2.1, depth: 1.04, materialColor: "black"),
+            StudioNode(name: "R6_JacketRight", className: "Part", x: 0.76, y: 3.25, width: 0.48, height: 2.1, depth: 1.04, materialColor: "black"),
+            StudioNode(name: "R6_LeftArm", className: "Part", x: -1.55, y: 3.25, width: 1, height: 2.1, depth: 1, materialColor: "black"),
+            StudioNode(name: "R6_RightArm", className: "Part", x: 1.55, y: 3.25, width: 1, height: 2.1, depth: 1, materialColor: "black"),
+            StudioNode(name: "R6_Head", className: "Part", x: 0, y: 5.15, width: 2, height: 1.55, depth: 1.35, materialColor: "white"),
+            StudioNode(name: "R6_LeftEye", className: "Part", shape: "Sphere", x: -0.36, y: 5.28, z: 0.69, width: 0.16, height: 0.3, depth: 0.12, materialColor: "face"),
+            StudioNode(name: "R6_RightEye", className: "Part", shape: "Sphere", x: 0.36, y: 5.28, z: 0.69, width: 0.16, height: 0.3, depth: 0.12, materialColor: "face"),
+            StudioNode(name: "R6_Smile", className: "Part", x: 0, y: 4.82, z: 0.70, width: 0.62, height: 0.055, depth: 0.035, materialColor: "face"),
+            StudioNode(name: "R6_HairCap", className: "Part", x: 0, y: 6.05, z: 0, width: 2.15, height: 0.58, depth: 1.48, materialColor: "hairDark"),
+            StudioNode(name: "R6_HairFront1", className: "Part", x: -0.78, y: 5.75, z: 0.48, width: 0.42, height: 0.9, depth: 0.5, materialColor: "hair"),
+            StudioNode(name: "R6_HairFront2", className: "Part", x: -0.32, y: 5.78, z: 0.55, width: 0.42, height: 0.95, depth: 0.48, materialColor: "hairLight"),
+            StudioNode(name: "R6_HairFront3", className: "Part", x: 0.18, y: 5.78, z: 0.56, width: 0.42, height: 0.92, depth: 0.48, materialColor: "hair"),
+            StudioNode(name: "R6_HairFront4", className: "Part", x: 0.65, y: 5.74, z: 0.48, width: 0.42, height: 0.86, depth: 0.5, materialColor: "hairLight"),
+            StudioNode(name: "R6_HairSideLeft", className: "Part", x: -1.0, y: 5.25, z: 0.02, width: 0.42, height: 1.5, depth: 1.25, materialColor: "hairDark"),
+            StudioNode(name: "R6_HairSideRight", className: "Part", x: 1.0, y: 5.25, z: 0.02, width: 0.42, height: 1.5, depth: 1.25, materialColor: "hairDark")
+        ]
+        nodes.append(contentsOf: rig)
+        selectedID = rig.first(where: { $0.name == "R6_Head" })?.id
     }
 
     var selectedNode: StudioNode? { nodes.first { $0.id == selectedID } }
@@ -157,6 +205,7 @@ struct StudioViewport: UIViewRepresentable {
 
     func updateUIView(_ view: SCNView, context: Context) {
         context.coordinator.view = view
+        view.scene?.rootNode.childNode(withName: "R6CharacterRoot", recursively: false)?.position = SCNVector3(Float(project.playerOffsetX), 0, Float(project.playerOffsetZ))
         if context.coordinator.lastNodes != project.nodes ||
             context.coordinator.lastSelectedID != project.selectedID ||
             view.scene == nil {
@@ -179,7 +228,7 @@ struct StudioViewport: UIViewRepresentable {
             Float(targetY + 8 + sin(project.cameraPitch) * distance),
             Float(project.cameraTargetZ + cos(project.cameraYaw) * horizontal)
         )
-        cameraNode.look(at: SCNVector3(Float(project.cameraTargetX), Float(targetY), Float(project.cameraTargetZ)))
+        cameraNode.look(at: SCNVector3(Float(project.cameraTargetX + (project.isPlaying ? project.playerOffsetX : 0)), Float(targetY), Float(project.cameraTargetZ + (project.isPlaying ? project.playerOffsetZ : 0))))
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(project: project) }
@@ -253,6 +302,11 @@ struct StudioViewport: UIViewRepresentable {
         let sunLight = SCNLight()
         sunLight.type = .directional
         sunLight.intensity = 900
+        sunLight.castsShadow = true
+        sunLight.shadowMode = .deferred
+        sunLight.shadowRadius = 7
+        sunLight.shadowColor = UIColor.black.withAlphaComponent(0.42)
+        sunLight.shadowMapSize = CGSize(width: 2048, height: 2048)
         sun.eulerAngles = SCNVector3(-Float.pi / 3, Float.pi / 4, 0)
         sun.light = sunLight
         scene.rootNode.addChildNode(sun)
@@ -263,6 +317,7 @@ struct StudioViewport: UIViewRepresentable {
         let floorNode = SCNNode(geometry: floor)
         floorNode.eulerAngles.x = -.pi / 2
         floorNode.position = SCNVector3(0, -2.15, 0)
+        floorNode.castsShadow = false
         scene.rootNode.addChildNode(floorNode)
 
         for item in project.nodes where item.className == "Part" {
@@ -274,7 +329,18 @@ struct StudioViewport: UIViewRepresentable {
             default: geometry = SCNBox(width: CGFloat(item.width), height: CGFloat(item.height), length: CGFloat(item.depth), chamferRadius: 0.04)
             }
             let material = SCNMaterial()
-            material.diffuse.contents = item.id == project.selectedID ? UIColor.systemBlue : UIColor(red: 0.55, green: 0.62, blue: 0.72, alpha: 1)
+            let partColor: UIColor
+            switch item.materialColor {
+            case "white": partColor = .white
+            case "black", "pants": partColor = UIColor(red: 0.045, green: 0.05, blue: 0.06, alpha: 1)
+            case "blue": partColor = UIColor(red: 0.0, green: 0.32, blue: 0.72, alpha: 1)
+            case "face": partColor = .black
+            case "hairDark": partColor = UIColor(red: 0.24, green: 0.075, blue: 0.018, alpha: 1)
+            case "hairLight": partColor = UIColor(red: 0.78, green: 0.30, blue: 0.035, alpha: 1)
+            case "hair": partColor = UIColor(red: 0.48, green: 0.16, blue: 0.025, alpha: 1)
+            default: partColor = UIColor(red: 0.55, green: 0.62, blue: 0.72, alpha: 1)
+            }
+            material.diffuse.contents = item.id == project.selectedID ? UIColor.systemBlue : partColor
             material.roughness.contents = 0.82
             material.metalness.contents = 0.02
             material.transparency = 1 - CGFloat(item.transparency)
@@ -294,7 +360,14 @@ struct StudioViewport: UIViewRepresentable {
             let node = SCNNode(geometry: geometry)
             node.name = item.id.uuidString
             node.position = SCNVector3(Float(item.x), Float(item.y), Float(item.z))
-            scene.rootNode.addChildNode(node)
+            node.castsShadow = true
+            if item.name.hasPrefix("R6_") {
+                var root = scene.rootNode.childNode(withName: "R6CharacterRoot", recursively: false)
+                if root == nil { root = SCNNode(); root?.name = "R6CharacterRoot"; scene.rootNode.addChildNode(root!) }
+                root?.addChildNode(node)
+            } else {
+                scene.rootNode.addChildNode(node)
+            }
         }
         // Imported OBJ sections are rendered as independent selectable mesh instances.
         for item in project.nodes where item.className == "MeshPart" && !item.meshOBJ.isEmpty {
