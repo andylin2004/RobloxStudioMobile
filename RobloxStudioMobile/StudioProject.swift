@@ -296,11 +296,11 @@ struct StudioViewport: UIViewRepresentable {
         }
         // Imported OBJ sections are rendered as independent selectable mesh instances.
         for item in project.nodes where item.className == "MeshPart" && !item.meshOBJ.isEmpty {
-            let lines = item.meshOBJ.split(whereSeparator: \\.isNewline)
+            let lines = item.meshOBJ.split(whereSeparator: \.isNewline)
             var vertices: [SCNVector3] = []
             var faces: [[Int]] = []
             for line in lines {
-                let fields = line.split(whereSeparator: \\.isWhitespace)
+                let fields = line.split(whereSeparator: \.isWhitespace)
                 guard let kind = fields.first else { continue }
                 if kind == "v", fields.count >= 4,
                    let x = Float(fields[1]), let y = Float(fields[2]), let z = Float(fields[3]) {
