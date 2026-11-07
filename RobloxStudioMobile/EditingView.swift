@@ -133,8 +133,10 @@ struct EditingView: View {
                     .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
                     .padding(.horizontal, 13).padding(.vertical, 10).background(Color.blue).cornerRadius(9)
             }
-            Button { project.duplicateSelected() } label: { Image(systemName: "arrow.uturn.backward") }.foregroundColor(.secondary)
-            Button { project.togglePlay() } label: { Image(systemName: project.isPlaying ? "stop.fill" : "play.fill").foregroundColor(project.isPlaying ? .red : .blue) }
+            Button { project.duplicateSelected() } label: { Image(systemName: "doc.on.doc") }.foregroundColor(.secondary)
+            Button { project.deleteSelected() } label: { Image(systemName: "trash") }.foregroundColor(.secondary)
+            Button { if !project.isPlaying { project.togglePlay() } } label: { Image(systemName: "play.fill").foregroundColor(.blue) }
+            Button { if project.isPlaying { project.togglePlay() } } label: { Image(systemName: "stop.fill").foregroundColor(.secondary) }
         }.padding(.horizontal, 12).padding(.vertical, 7)
             .background(Color(red: 0.96, green: 0.97, blue: 0.99))
     }
@@ -156,7 +158,12 @@ struct EditingView: View {
         VStack(spacing: 4) {
             HStack(spacing: 12) {
                 ForEach(items, id: \.0) { item in
-                    Button(action: action) {
+                    Button(action: {
+                        if title == "Test" {
+                            if item.0 == "Play" && !project.isPlaying { project.togglePlay() }
+                            if item.0 == "Stop" && project.isPlaying { project.togglePlay() }
+                        } else { action() }
+                    }) {
                         VStack(spacing: 4) {
                             Image(systemName: item.1).font(.system(size: 23, weight: .medium)).foregroundColor(.blue)
                             Text(item.0).font(.system(size: 10, weight: .medium)).foregroundColor(.primary).lineLimit(1)
