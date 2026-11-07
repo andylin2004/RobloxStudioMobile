@@ -35,7 +35,7 @@ struct EditingView: View {
                             StudioViewport(project: project)
                             HStack(alignment: .bottom) {
                                 TouchJoystick(title: "MOVE") { vector in
-                                    project.moveViewport(-Double(vector.x) * 0.42, Double(vector.y) * 0.42)
+                                    if project.isPlaying { project.movePlayer(-Double(vector.x) * 0.18, Double(vector.y) * 0.18) } else { project.moveViewport(-Double(vector.x) * 0.42, Double(vector.y) * 0.42) }
                                 }
                                 Spacer()
                                 TouchJoystick(title: "LOOK") { vector in
@@ -134,7 +134,7 @@ struct EditingView: View {
                     .padding(.horizontal, 13).padding(.vertical, 10).background(Color.blue).cornerRadius(9)
             }
             Button { project.duplicateSelected() } label: { Image(systemName: "arrow.uturn.backward") }.foregroundColor(.secondary)
-            Button { project.deleteSelected() } label: { Image(systemName: "arrow.uturn.forward") }.foregroundColor(.secondary)
+            Button { project.togglePlay() } label: { Image(systemName: project.isPlaying ? "stop.fill" : "play.fill").foregroundColor(project.isPlaying ? .red : .blue) }
         }.padding(.horizontal, 12).padding(.vertical, 7)
             .background(Color(red: 0.96, green: 0.97, blue: 0.99))
     }
@@ -146,7 +146,7 @@ struct EditingView: View {
                 ribbonGroup("Tools", items: [("Select", "cursorarrow"), ("Move", "move.3d"), ("Scale", "arrow.up.left.and.arrow.down.right"), ("Rotate", "rotate.3d")]) {}
                 ribbonGroup("Insert", items: [("Part", "cube.fill"), ("Terrain", "mountain.2.fill"), ("Insert Object", "plus")]) { project.addPart(shape: "Block") }
                 ribbonGroup("Edit", items: [("Material", "circle.lefthalf.filled"), ("Color", "paintpalette"), ("Anchor", "pin.fill")]) {}
-                ribbonGroup("Test", items: [("Play", "play.fill"), ("Stop", "stop.fill"), ("Game Settings", "gearshape"), ("Team Test", "person.3.fill")]) {}
+                ribbonGroup("Test", items: [("Play", "play.fill"), ("Stop", "stop.fill"), ("Game Settings", "gearshape"), ("Team Test", "person.3.fill")]) { project.togglePlay() }
                 ribbonGroup("Animation", items: [("Animation Editor", "figure.run")]) { showAnimationPanel = true }
             }.padding(.horizontal, 5).padding(.vertical, 5)
         }.frame(height: 86).background(Color(red: 0.94, green: 0.95, blue: 0.97))
@@ -195,6 +195,7 @@ struct EditingView: View {
                     ForEach(toolboxItems.filter { toolboxSearch.isEmpty || $0.0.localizedCaseInsensitiveContains(toolboxSearch) }, id: \.0) { item in
                         Button {
                             switch item.0 {
+                            case "R6 Rig", "R15 Rig", "NPC": project.addR6Rig()
                             case "Sphere": project.addPart(shape: "Sphere")
                             case "Cylinder": project.addPart(shape: "Cylinder")
                             case "Wedge": project.addPart(shape: "Wedge")
@@ -353,10 +354,24 @@ struct EditingView: View {
         }.buttonStyle(PlainButtonStyle())
     }
 
+    private func executeCommand() {
+        let command = commandText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        commandText = ""
+        switch command {
+        case "play", "run": if !project.isPlaying { project.togglePlay() }
+        case "stop": if project.isPlaying { project.togglePlay() }
+        case "insert part", "part": project.addPart()
+        case "insert r6", "r6", "insert rig": project.addR6Rig()
+        case "duplicate": project.duplicateSelected()
+        case "delete": project.deleteSelected()
+        case "home": project.cameraTargetX = 0; project.cameraTargetZ = 0
+        default: importStatus = "Unknown command. Try: play, stop, insert part, insert r6, duplicate, delete, home."
+        }
+    }
     private var commandBar: some View {
         HStack(spacing: 8) {
             Image(systemName: "chevron.right").font(.system(size: 10, weight: .bold))
-            TextField("Run a command", text: $commandText).font(.system(size: 12))
+            TextField("Run a command", text: $commandText, onCommit: executeCommand).font(.system(size: 12))
             Spacer()
         }.padding(.horizontal, 10).padding(.vertical, 9)
             .background(Color(red: 0.97, green: 0.98, blue: 0.99))
