@@ -34,6 +34,14 @@ struct EditingView: View {
                         ZStack(alignment: .bottom) {
                             StudioViewport(project: project)
                             VStack {
+                                if project.activeTool == "Scale" && !project.isPlaying {
+                                    Text("SCALE: drag horizontally for width, vertically for height")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .padding(7)
+                                        .background(Color.black.opacity(0.55))
+                                        .cornerRadius(6)
+                                }
                                 HStack { Spacer(); VStack(spacing: 5) {
                                     Button { project.zoomViewport(-6) } label: { Image(systemName: "plus.magnifyingglass").frame(width: 40, height: 40).background(Color.black.opacity(0.45)).cornerRadius(8) }
                                     Button { project.zoomViewport(6) } label: { Image(systemName: "minus.magnifyingglass").frame(width: 40, height: 40).background(Color.black.opacity(0.45)).cornerRadius(8) }
@@ -173,10 +181,12 @@ struct EditingView: View {
                         if title == "Test" {
                             if item.0 == "Play" && !project.isPlaying { project.togglePlay() }
                             if item.0 == "Stop" && project.isPlaying { project.togglePlay() }
+                        } else if title == "Tools" {
+                            project.activeTool = item.0
                         } else { action() }
                     }) {
                         VStack(spacing: 4) {
-                            Image(systemName: item.1).font(.system(size: 23, weight: .medium)).foregroundColor(.blue)
+                            Image(systemName: item.1).font(.system(size: 23, weight: .medium)).foregroundColor(title == "Tools" && project.activeTool == item.0 ? .orange : .blue)
                             Text(item.0).font(.system(size: 10, weight: .medium)).foregroundColor(.primary).lineLimit(1)
                         }.frame(minWidth: 47)
                     }.buttonStyle(PlainButtonStyle())
